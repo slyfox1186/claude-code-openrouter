@@ -56,7 +56,7 @@ class DockerManager:
     def __init__(self):
         self.container_name = "openrouter"
         self.image_name = "openrouter:latest"
-        self.compose_file = "docker-compose.yml"
+        self.compose_file = "docker/docker-compose.yml"
         self.env_file = ".env"
         
         # Set environment variable for bake delegation

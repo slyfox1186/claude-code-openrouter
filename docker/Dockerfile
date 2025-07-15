@@ -26,4 +26,4 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Run the server
-CMD ["python3", "server.py"]
+CMD ["python3", "-m", "src.server"]

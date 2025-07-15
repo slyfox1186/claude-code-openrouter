@@ -7,7 +7,7 @@ import sys
 import os
 import logging
 from dotenv import load_dotenv
-from conversation_manager import ConversationManager
+from .conversation_manager import ConversationManager
 
 # Configure detailed logging with both stdout and stderr
 logging.basicConfig(
@@ -77,7 +77,7 @@ def handle_initialize(params, request_id):
 def handle_tools_list(request_id):
     """Handle tools/list request"""
     logger.info("Handling tools/list request")
-    from config import DEFAULT_MODEL
+    from .config import DEFAULT_MODEL
     tools = [
         {
             "name": "chat",
@@ -164,10 +164,10 @@ async def handle_tools_call(params, request_id):
     
     if tool_name == "chat":
         prompt = arguments.get("prompt", "")
-        from config import DEFAULT_MODEL
+        from .config import DEFAULT_MODEL
         model = arguments.get("model", DEFAULT_MODEL)
         # Map model alias to actual model name
-        from config import get_model_alias
+        from .config import get_model_alias
         original_model = model
         model = get_model_alias(model)
         logger.info(f"MODEL MAPPING: '{original_model}' -> '{model}'")

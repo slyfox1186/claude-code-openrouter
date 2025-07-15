@@ -37,7 +37,7 @@ fi
 # Add function to shell profile
 echo "" >> "$SHELL_RC"
 echo "# OpenRouter MCP Claude Code Function" >> "$SHELL_RC"
-cat claude_mcp_function.sh >> "$SHELL_RC"
+cat examples/claude_mcp_function.sh >> "$SHELL_RC"
 
 echo "✅ Function installed successfully!"
 echo ""

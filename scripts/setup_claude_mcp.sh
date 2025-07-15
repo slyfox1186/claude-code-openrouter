@@ -64,7 +64,7 @@ setup_claude_mcp() {
         
         # Use existing container for MCP
         echo "🔗 Adding MCP connection to existing container..."
-        claude mcp add openrouter-docker -s user -- docker exec -i "$CONTAINER_NAME" python3 server.py
+        claude mcp add openrouter-docker -s user -- docker exec -i "$CONTAINER_NAME" python3 -m src.server
     else
         echo "🔗 Creating new MCP connection with new container..."
         claude mcp add openrouter-docker -s user -- docker run -i --name "$CONTAINER_NAME" -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -v $HOME:"/host$HOME":ro openrouter:latest
