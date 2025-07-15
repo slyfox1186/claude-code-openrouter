@@ -40,8 +40,8 @@ claude_mcp() {
     echo "✅ API key extracted successfully"
     
     # Remove existing MCP connection (ignore errors)
-    echo "🗑️  Removing existing MCP connection..."
-    claude mcp remove openrouter-docker 2>/dev/null || true
+    # echo "🗑️  Removing existing MCP connection..."
+    # claude mcp remove openrouter-docker 2>/dev/null || true
     
     # Add new MCP connection
     echo "🔗 Adding new MCP connection..."
