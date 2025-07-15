@@ -13,10 +13,10 @@ if [ $? -eq 0 ]; then
     echo "  docker-compose up -d"
     echo ""
     echo "To run with docker directly:"
-    echo "  docker run -it --rm -e OPENROUTER_API_KEY='$OPENROUTER_API_KEY' -v /home/jman:/host/home/jman:ro openrouter:latest"
+    echo "  docker run -it --rm -e OPENROUTER_API_KEY='$OPENROUTER_API_KEY' -v $HOME:/host$HOME:ro openrouter:latest"
     echo ""
     echo "To run interactively for MCP:"
-    echo "  docker run -i --rm -e OPENROUTER_API_KEY='$OPENROUTER_API_KEY' -v /home/jman:/host/home/jman:ro openrouter:latest"
+    echo "  docker run -i --rm -e OPENROUTER_API_KEY='$OPENROUTER_API_KEY' -v $HOME:/host$HOME:ro openrouter:latest"
 else
     echo "❌ Docker build failed"
     exit 1

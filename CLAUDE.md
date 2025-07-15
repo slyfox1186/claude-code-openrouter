@@ -83,7 +83,7 @@ Required environment variables in `.env`:
 
 - **Base Image**: Python 3.12-slim with git support
 - **Security**: Runs as non-root user (mcpuser)
-- **Volume Mounts**: Read-only access to host filesystem (`/home/jman`, `/tmp`)
+- **Volume Mounts**: Read-only access to host filesystem (`$HOME`, `/tmp`)
 - **Interactive Mode**: Supports both daemon and interactive execution
 
 ### File Structure

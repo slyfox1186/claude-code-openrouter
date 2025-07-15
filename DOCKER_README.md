@@ -150,7 +150,7 @@ The system uses:
 - **Base Image**: `python:3.12-slim`
 - **Non-root User**: Runs as `mcpuser` for security
 - **Volume Mounts**: 
-  - `/home/jman:/host/home/jman:ro` (read-only home directory access)
+  - `$HOME:/host$HOME:ro` (read-only home directory access)
   - `/tmp:/host/tmp:ro` (read-only tmp access)
 - **Environment Variables**: Configured via `.env` file
 - **Compose Bake**: Enhanced build performance
