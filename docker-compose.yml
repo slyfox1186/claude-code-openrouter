@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  openrouter:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: openrouter:latest
+    container_name: openrouter
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - COMPOSE_BAKE=true
+    volumes:
+      # Mount your home directory for file access
+      - /home/jman:/host/home/jman:ro
+      # Mount additional directories as needed
+      - /tmp:/host/tmp:ro
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    command: ["python3", "server.py"]
