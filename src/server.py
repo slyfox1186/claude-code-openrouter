@@ -6,8 +6,15 @@ import json
 import sys
 import os
 import logging
+import asyncio
 from dotenv import load_dotenv
-from .conversation_manager import ConversationManager
+
+# Handle both direct execution and module import
+try:
+    from .conversation_manager import ConversationManager
+except ImportError:
+    # Direct execution fallback
+    from conversation_manager import ConversationManager
 
 # Configure detailed logging with both stdout and stderr
 logging.basicConfig(
@@ -77,7 +84,10 @@ def handle_initialize(params, request_id):
 def handle_tools_list(request_id):
     """Handle tools/list request"""
     logger.info("Handling tools/list request")
-    from .config import DEFAULT_MODEL
+    try:
+        from .config import DEFAULT_MODEL
+    except ImportError:
+        from config import DEFAULT_MODEL
     tools = [
         {
             "name": "chat",
@@ -164,10 +174,12 @@ async def handle_tools_call(params, request_id):
     
     if tool_name == "chat":
         prompt = arguments.get("prompt", "")
-        from .config import DEFAULT_MODEL
+        try:
+            from .config import DEFAULT_MODEL, get_model_alias
+        except ImportError:
+            from config import DEFAULT_MODEL, get_model_alias
         model = arguments.get("model", DEFAULT_MODEL)
         # Map model alias to actual model name
-        from .config import get_model_alias
         original_model = model
         model = get_model_alias(model)
         logger.info(f"MODEL MAPPING: '{original_model}' -> '{model}'")
@@ -549,5 +561,4 @@ async def main():
             break
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())

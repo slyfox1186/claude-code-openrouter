@@ -1,6 +1,9 @@
 #!/bin/bash
 # Run script for OpenRouter MCP Server
 
+# Change to the project root directory
+cd "$(dirname "$0")/.."
+
 # Check if .env file exists
 if [ ! -f .env ]; then
     echo "❌ .env file not found. Please create it with your OPENROUTER_API_KEY"

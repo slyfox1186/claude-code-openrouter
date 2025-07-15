@@ -1,10 +1,13 @@
 #!/bin/bash
 # Build script for OpenRouter MCP Server
 
+# Change to the project root directory
+cd "$(dirname "$0")/.."
+
 echo "Building OpenRouter MCP Server Docker image..."
 
-# Build the Docker image with buildx
-docker buildx build -t openrouter:latest -f docker/Dockerfile .
+# Build the Docker image
+docker build -t openrouter:latest -f docker/Dockerfile .
 
 if [ $? -eq 0 ]; then
     echo "✅ Docker image built successfully: openrouter:latest"
