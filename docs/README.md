@@ -60,6 +60,14 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 ### Method 1: Docker Deployment (Recommended)
 
+#### Prerequisites for Docker
+
+- **Docker**: Install from [docker.com](https://www.docker.com/get-started)
+- **Docker Compose**: Usually included with Docker Desktop
+- **Git**: For cloning the repository
+
+#### Quick Start
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/slyfox1186/claude-code-openrouter.git
@@ -68,16 +76,91 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 2. **Set up environment:**
    ```bash
+   # Copy the environment template
    cp .env.example .env
+   
    # Edit .env with your OpenRouter API key
    nano .env
+   # Or use your preferred editor: vim .env, code .env, etc.
    ```
 
-3. **Build and run:**
+3. **Build and run (Option A - Using Scripts):**
    ```bash
+   # Make scripts executable
+   chmod +x scripts/build.sh scripts/run.sh
+   
+   # Build the Docker image
    ./scripts/build.sh
+   
+   # Run the container
    ./scripts/run.sh
    ```
+
+4. **Alternative: Build and run (Option B - Using Docker Compose):**
+   ```bash
+   # Build and start in one command
+   docker-compose -f docker/docker-compose.yml up --build
+   
+   # Or run in detached mode
+   docker-compose -f docker/docker-compose.yml up --build -d
+   ```
+
+#### Docker Management Options
+
+**Using the Python Docker Manager:**
+```bash
+# Build the image
+python tools/docker_manager.py build
+
+# Start the container
+python tools/docker_manager.py start
+
+# Check status
+python tools/docker_manager.py status
+
+# View logs
+python tools/docker_manager.py logs
+
+# Stop the container
+python tools/docker_manager.py stop
+
+# Get interactive shell
+python tools/docker_manager.py shell
+```
+
+**Using Docker Commands Directly:**
+```bash
+# Build image
+docker build -t openrouter:latest -f docker/Dockerfile .
+
+# Run container (interactive for MCP)
+docker run -i --rm \
+  --env-file .env \
+  -v $HOME:/host$HOME:ro \
+  openrouter:latest
+
+# Run container with custom command
+docker run -it --rm \
+  --env-file .env \
+  -v $HOME:/host$HOME:ro \
+  openrouter:latest python tools/docker_manager.py status
+```
+
+#### Verification
+
+After starting the container, verify it's working:
+
+```bash
+# Check container status
+docker ps | grep openrouter
+
+# View container logs
+docker logs openrouter
+
+# Test the server (from another terminal)
+echo '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}' | \
+  docker exec -i openrouter python -m src.server
+```
 
 ### Method 2: Direct Python Installation
 
@@ -193,30 +276,49 @@ Support for various input types:
 
 ## 🐳 Docker Management
 
-Use the included Docker manager for easy container operations:
+### Container Lifecycle Management
 
+The project includes a comprehensive Docker management system:
+
+**Python Docker Manager (Recommended):**
 ```bash
-# Build image
-python tools/docker_manager.py build
+# Complete lifecycle management
+python tools/docker_manager.py build    # Build new image
+python tools/docker_manager.py start    # Start container
+python tools/docker_manager.py restart  # Full restart (stop + start)
+python tools/docker_manager.py stop     # Stop container
+python tools/docker_manager.py status   # Check container status
 
-# Start container
-python tools/docker_manager.py start
-
-# View logs
-python tools/docker_manager.py logs
-
-# Interactive shell
-python tools/docker_manager.py shell
-
-# Stop container
-python tools/docker_manager.py stop
-
-# Full restart
-python tools/docker_manager.py restart
-
-# Check status
-python tools/docker_manager.py status
+# Debugging and monitoring
+python tools/docker_manager.py logs     # View container logs
+python tools/docker_manager.py shell    # Interactive shell access
 ```
+
+**Docker Compose (Alternative):**
+```bash
+# Using docker-compose directly
+docker-compose -f docker/docker-compose.yml up --build -d  # Build and start
+docker-compose -f docker/docker-compose.yml logs -f        # Follow logs
+docker-compose -f docker/docker-compose.yml restart        # Restart service
+docker-compose -f docker/docker-compose.yml down           # Stop and remove
+```
+
+**Manual Docker Commands:**
+```bash
+# For advanced users who prefer direct control
+docker build -t openrouter:latest -f docker/Dockerfile .
+docker run -i --rm --env-file .env -v $HOME:/host$HOME:ro openrouter:latest
+docker logs openrouter
+docker exec -it openrouter /bin/bash
+```
+
+### Container Features
+
+- **Persistent Storage**: Conversation history survives container restarts
+- **File Access**: Read-only access to host filesystem for file processing
+- **Environment Integration**: Automatic `.env` file loading
+- **Security**: Runs as non-root user with minimal privileges
+- **Interactive Mode**: Supports both daemon and interactive MCP execution
 
 ## 🔧 Development
 
