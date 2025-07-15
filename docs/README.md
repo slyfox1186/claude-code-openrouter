@@ -208,9 +208,57 @@ For Claude Code users, there's an automated setup script that handles the entire
 - Docker image already built (run `./scripts/build.sh` first)
 - Valid `.env` file with `OPENROUTER_API_KEY`
 
+**Using from any directory:**
+The setup script automatically detects the project directory and works from anywhere:
+
+```bash
+# From any directory - use absolute path
+/path/to/openrouter-connect/scripts/setup_claude_mcp.sh build
+
+# Or set environment variable
+export OPENROUTER_DIR=/path/to/openrouter-connect
+./scripts/setup_claude_mcp.sh build
+
+# Or create a global alias (add to ~/.bashrc or ~/.zshrc)
+alias openrouter-mcp='/path/to/openrouter-connect/scripts/setup_claude_mcp.sh'
+openrouter-mcp build
+```
+
+**Global Installation (Optional):**
+
+To make the command available system-wide:
+
+```bash
+# Option 1: System-wide installation (requires sudo)
+sudo ./scripts/install_global.sh
+
+# Option 2: User-local installation (no sudo required)
+./scripts/install_local.sh
+
+# Then use from anywhere:
+openrouter-mcp build
+openrouter-mcp setup
+openrouter-mcp status
+```
+
+#### Manual Setup
+
+If you prefer to set up the MCP connection manually instead of using the automated script:
+
+```bash
+# 1. First, make sure your container is running
+docker ps | grep openrouter
+
+# 2. Add the MCP connection to Claude Code
+claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
+
+# 3. Verify the connection was added
+claude mcp list
+```
+
 #### Manual Verification
 
-If you prefer to verify the setup manually:
+Additional verification commands:
 
 ```bash
 # Check container status
@@ -225,6 +273,9 @@ echo '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}' | \
 
 # List MCP connections in Claude Code
 claude mcp list
+
+# Remove MCP connection (if needed)
+claude mcp remove openrouter-docker
 ```
 
 ### Method 2: Direct Python Installation
@@ -305,8 +356,8 @@ The server supports intelligent model aliases:
 ```json
 {
   "model": "gemini"          // → google/gemini-2.5-pro
-  "model": "claude"          // → anthropic/claude-4-sonnet
-  "model": "claude opus"     // → anthropic/claude-4-opus
+  "model": "claude"          // → anthropic/claude-sonnet-4
+  "model": "claude opus"     // → anthropic/claude-opus-4
   "model": "kimi"            // → moonshotai/kimi-k2
   "model": "gpt-4"           // → openai/gpt-4
 }
@@ -397,7 +448,9 @@ openrouter-connect/
 ├── scripts/               # Build and deployment scripts
 │   ├── build.sh           # Docker build script
 │   ├── run.sh            # Docker run script
-│   └── setup_claude_mcp.sh # Automated Claude Code MCP setup
+│   ├── setup_claude_mcp.sh # Automated Claude Code MCP setup
+│   ├── install_global.sh  # Global installation (requires sudo)
+│   └── install_local.sh   # Local installation (user-only)
 ├── docker/               # Docker configuration
 │   ├── Dockerfile        # Container definition
 │   └── docker-compose.yml # Service orchestration
@@ -465,8 +518,8 @@ The server automatically detects model capabilities:
 | Alias | Full Model Name | Provider |
 |-------|-----------------|----------|
 | `gemini` | `google/gemini-2.5-pro` | Google |
-| `claude` | `anthropic/claude-4-sonnet` | Anthropic |
-| `claude-opus` | `anthropic/claude-4-opus` | Anthropic |
+| `claude` | `anthropic/claude-sonnet-4` | Anthropic |
+| `claude-opus` | `anthropic/claude-opus-4` | Anthropic |
 | `kimi` | `moonshotai/kimi-k2` | Moonshot |
 | `gpt-4` | `openai/gpt-4` | OpenAI |
 | `llama` | `meta-llama/llama-3.1-8b-instruct` | Meta |

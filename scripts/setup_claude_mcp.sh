@@ -29,13 +29,36 @@ show_usage() {
 
 # Function to get project directory
 get_project_dir() {
-    echo "${OPENROUTER_DIR:-$(dirname "$(dirname "$(realpath "$0")")")}"
+    if [ -n "$OPENROUTER_DIR" ]; then
+        echo "$OPENROUTER_DIR"
+        return
+    fi
+    
+    # Get the absolute path of the script
+    local script_path="$(readlink -f "$0")"
+    local script_dir="$(dirname "$script_path")"
+    local project_dir="$(dirname "$script_dir")"
+    
+    # Verify this is the correct project directory
+    if [ -f "$project_dir/.env.example" ] && [ -f "$project_dir/src/server.py" ]; then
+        echo "$project_dir"
+    else
+        echo "❌ Error: Could not find OpenRouter project directory" >&2
+        echo "Current script: $script_path" >&2
+        echo "Expected project at: $project_dir" >&2
+        echo "Please set OPENROUTER_DIR environment variable to the project path" >&2
+        return 1
+    fi
 }
 
 # Function to manage Docker container
 docker_command() {
     local cmd="$1"
     local project_dir=$(get_project_dir)
+    
+    if [ $? -ne 0 ] || [ -z "$project_dir" ]; then
+        return 1
+    fi
     
     cd "$project_dir"
     
@@ -77,7 +100,12 @@ setup_claude_mcp() {
     local target_dir="${1:-$(pwd)}"
     local openrouter_dir=$(get_project_dir)
     
+    if [ $? -ne 0 ] || [ -z "$openrouter_dir" ]; then
+        return 1
+    fi
+    
     echo "🔧 Setting up OpenRouter MCP connection..."
+    echo "📁 Using project directory: $openrouter_dir"
     
     # Check if openrouter directory exists
     if [ ! -d "$openrouter_dir" ]; then
