@@ -561,6 +561,18 @@ python tools/docker_manager.py restart
 ```bash
 # Test model alias resolution
 python -c "from src.config import get_model_alias; print(get_model_alias('gemini'))"
+python -c "from src.config import get_model_alias; print(get_model_alias('claude'))"
+python -c "from src.config import get_model_alias; print(get_model_alias('claude-opus'))"
+```
+
+**Claude model "not a valid model ID" errors:**
+If you get errors like `anthropic/claude-4-opus is not a valid model ID`, this means the model aliases are outdated. The correct OpenRouter model IDs are:
+- `anthropic/claude-sonnet-4` (for "claude" alias)
+- `anthropic/claude-opus-4` (for "claude-opus" alias)
+
+The server automatically maps these aliases, but you can verify by checking the container logs:
+```bash
+docker logs openrouter | grep "MODEL MAPPING"
 ```
 
 ### Debug Mode
