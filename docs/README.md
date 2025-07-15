@@ -342,9 +342,9 @@ RATE_LIMIT_TOKENS_PER_MINUTE=100000
 
 Here's the OpenRouter MCP server in action with Claude Code:
 
-
 ![OpenRouter MCP Server in Action 1](https://i.imgur.com/EWeYACE.png)
 ![OpenRouter MCP Server in Action 2](https://i.imgur.com/4kNID46.png)
+![OpenRouter MCP Server in Action 3](https://i.imgur.com/s2HOphS.png)
 
 *Example showing successful connection to different AI models (Gemini, Claude Opus) through the OpenRouter MCP server, with conversation continuity and model switching capabilities.*
 
