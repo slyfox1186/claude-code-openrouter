@@ -5,10 +5,77 @@
 
 set -e  # Exit on any error
 
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [COMMAND] [TARGET_DIR]"
+    echo ""
+    echo "Commands:"
+    echo "  setup     Set up MCP connection (default)"
+    echo "  stop      Stop the OpenRouter container"
+    echo "  build     Build the OpenRouter Docker image"
+    echo "  start     Start the OpenRouter container"
+    echo "  restart   Restart the OpenRouter container"
+    echo "  status    Check container status"
+    echo "  logs      View container logs"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Setup MCP connection"
+    echo "  $0 setup              # Setup MCP connection"
+    echo "  $0 stop               # Stop container"
+    echo "  $0 build              # Build Docker image"
+    echo "  $0 start              # Start container"
+    echo "  $0 setup /path/to/dir # Setup and cd to directory"
+}
+
+# Function to get project directory
+get_project_dir() {
+    echo "${OPENROUTER_DIR:-$(dirname "$(dirname "$(realpath "$0")")")}"
+}
+
+# Function to manage Docker container
+docker_command() {
+    local cmd="$1"
+    local project_dir=$(get_project_dir)
+    
+    cd "$project_dir"
+    
+    case "$cmd" in
+        "stop")
+            echo "🛑 Stopping OpenRouter container..."
+            python tools/docker_manager.py stop
+            ;;
+        "build")
+            echo "🏗️ Building OpenRouter Docker image..."
+            python tools/docker_manager.py build
+            ;;
+        "start")
+            echo "🚀 Starting OpenRouter container..."
+            python tools/docker_manager.py start
+            ;;
+        "restart")
+            echo "🔄 Restarting OpenRouter container..."
+            python tools/docker_manager.py restart
+            ;;
+        "status")
+            echo "📊 Checking OpenRouter container status..."
+            python tools/docker_manager.py status
+            ;;
+        "logs")
+            echo "📋 Viewing OpenRouter container logs..."
+            python tools/docker_manager.py logs
+            ;;
+        *)
+            echo "❌ Unknown command: $cmd"
+            show_usage
+            return 1
+            ;;
+    esac
+}
+
 # Function to setup OpenRouter MCP and start Claude Code
 setup_claude_mcp() {
     local target_dir="${1:-$(pwd)}"
-    local openrouter_dir="${OPENROUTER_DIR:-$(dirname "$(dirname "$(realpath "$0")")")}"
+    local openrouter_dir=$(get_project_dir)
     
     echo "🔧 Setting up OpenRouter MCP connection..."
     
@@ -78,16 +145,48 @@ setup_claude_mcp() {
         return 1
     fi
     
-    # Change to target directory
-    echo "📁 Changing to target directory: $target_dir"
-    cd "$target_dir"
+    # Change to target directory only if it exists and is a directory
+    if [ -d "$target_dir" ]; then
+        echo "📁 Changing to target directory: $target_dir"
+        cd "$target_dir"
+    else
+        echo "📁 Staying in current directory: $(pwd)"
+    fi
     
     # Start Claude Code
     echo
     echo "🚀 Claude has been setup successfully!"
 }
 
+# Main script logic
+main() {
+    local command="${1:-setup}"
+    local target_dir="$2"
+    
+    case "$command" in
+        "setup"|"")
+            setup_claude_mcp "$target_dir"
+            ;;
+        "stop"|"build"|"start"|"restart"|"status"|"logs")
+            docker_command "$command"
+            ;;
+        "help"|"-h"|"--help")
+            show_usage
+            ;;
+        *)
+            # If the first argument looks like a directory path, treat it as setup with target directory
+            if [ -d "$command" ] || [[ "$command" == /* ]] || [[ "$command" == ~* ]]; then
+                setup_claude_mcp "$command"
+            else
+                echo "❌ Unknown command: $command"
+                show_usage
+                return 1
+            fi
+            ;;
+    esac
+}
+
 # If script is run directly (not sourced)
 if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
-    setup_claude_mcp "$@"
+    main "$@"
 fi
