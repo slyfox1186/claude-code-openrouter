@@ -59,8 +59,12 @@ class DockerManager:
         self.compose_file = "docker/docker-compose.yml"
         self.env_file = ".env"
         
+        # Set up paths
+        self.dockerfile_path = Path("docker/Dockerfile")
+        self.docker_compose_path = Path("docker/docker-compose.yml")
+        
         # Set environment variable for bake delegation
-        os.environ['COMPOSE_BAKE'] = 'true'
+        # Removed COMPOSE_BAKE to avoid bake delegation issues
         
         # Force color output
         os.environ['FORCE_COLOR'] = '1'
@@ -350,17 +354,23 @@ class DockerManager:
         self._print_separator()
     
     def build_image(self) -> None:
-        """Build Docker image with bake delegation"""
+        """Build Docker image"""
         self._print_header("Building Docker image...")
         print()
         
-        self._print_info(f"Building image '{self.image_name}' with Bake delegation...")
-        print(f"{Color.GRAY}Using COMPOSE_BAKE=true for enhanced performance{Color.NC}")
+        self._print_info(f"Building image '{self.image_name}'...")
         print()
         
-        # Use docker-compose to build with bake delegation
-        if self._run_command(['docker-compose', 'build']):
-            self._print_success("Image built successfully with Bake delegation")
+        # Use docker build command directly
+        build_cmd = [
+            'docker', 'build', 
+            '-t', self.image_name,
+            '-f', str(self.dockerfile_path),
+            '.'
+        ]
+        
+        if self._run_command(build_cmd):
+            self._print_success("Image built successfully")
         else:
             self._print_error("Failed to build image")
         
@@ -386,10 +396,16 @@ class DockerManager:
             self._print_info("Removing existing stopped container...")
             self._run_command(['docker', 'rm', self.container_name])
         
-        # Start with docker-compose (using bake delegation)
-        self._print_info("Starting container using docker-compose with Bake delegation...")
+        # Start with docker-compose
+        self._print_info("Starting container using docker-compose...")
         
-        if self._run_command(['docker-compose', 'up', '-d']):
+        compose_cmd = [
+            'docker-compose', 
+            '-f', str(self.docker_compose_path),
+            'up', '-d'
+        ]
+        
+        if self._run_command(compose_cmd):
             # Wait a moment and check status
             time.sleep(2)
             container_status = self._get_container_status()

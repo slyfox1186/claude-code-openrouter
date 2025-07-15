@@ -176,6 +176,24 @@ For Claude Code users, there's an automated setup script that handles the entire
 ./scripts/setup_claude_mcp.sh /path/to/your/project
 ```
 
+**Setup Script Commands:**
+```bash
+# MCP connection management
+./scripts/setup_claude_mcp.sh setup    # Setup MCP connection (default)
+./scripts/setup_claude_mcp.sh          # Same as setup
+
+# Docker container management
+./scripts/setup_claude_mcp.sh stop     # Stop OpenRouter container
+./scripts/setup_claude_mcp.sh build    # Build OpenRouter Docker image
+./scripts/setup_claude_mcp.sh start    # Start OpenRouter container
+./scripts/setup_claude_mcp.sh restart  # Restart OpenRouter container
+./scripts/setup_claude_mcp.sh status   # Check container status
+./scripts/setup_claude_mcp.sh logs     # View container logs
+
+# Get help
+./scripts/setup_claude_mcp.sh help     # Show usage information
+```
+
 **What the setup script does:**
 - ✅ Validates environment configuration
 - ✅ Extracts API key from `.env` file
@@ -183,6 +201,7 @@ For Claude Code users, there's an automated setup script that handles the entire
 - ✅ Adds MCP connection to Claude Code
 - ✅ Reuses existing containers if available
 - ✅ Handles container restarts automatically
+- ✅ Provides unified interface for all Docker operations
 
 **Prerequisites for automated setup:**
 - Claude Code CLI installed (`claude` command available)
@@ -256,9 +275,6 @@ LOG_FILE=openrouter_mcp.log
 # Optional: Rate limiting
 RATE_LIMIT_REQUESTS_PER_MINUTE=60
 RATE_LIMIT_TOKENS_PER_MINUTE=100000
-
-# Docker Compose Bake delegation for better build performance
-COMPOSE_BAKE=true
 ```
 
 ### 🔑 Getting Your OpenRouter API Key
