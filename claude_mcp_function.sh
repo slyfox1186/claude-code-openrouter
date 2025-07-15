@@ -5,7 +5,7 @@
 # Function to quickly setup OpenRouter MCP and start Claude Code
 claude_mcp() {
     local target_dir="${1:-$(pwd)}"
-    local openrouter_dir="/home/jman/tmp/openrouter-connect-improved"
+    local openrouter_dir="$HOME/tmp/openrouter-connect-improved"
     
     echo "🔧 Setting up OpenRouter MCP connection..."
     

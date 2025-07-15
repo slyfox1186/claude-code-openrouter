@@ -13,8 +13,8 @@ services:
       - PYTHONUNBUFFERED=1
       - COMPOSE_BAKE=true
     volumes:
-      # Mount your home directory for file access
-      - /home/jman:/host/home/jman:ro
+      # Mount user home directory for file access
+      - ${HOME}:/host${HOME}:ro
       # Mount additional directories as needed
       - /tmp:/host/tmp:ro
     stdin_open: true
