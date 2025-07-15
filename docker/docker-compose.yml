@@ -3,12 +3,12 @@ version: '3.8'
 services:
   openrouter:
     build: 
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     image: openrouter:latest
     container_name: openrouter
     env_file:
-      - .env
+      - ../.env
     environment:
       - PYTHONUNBUFFERED=1
       - COMPOSE_BAKE=true
@@ -20,4 +20,4 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
-    command: ["python3", "server.py"]
+    command: ["python3", "-m", "src.server"]

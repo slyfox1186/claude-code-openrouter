@@ -75,8 +75,8 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 3. **Build and run:**
    ```bash
-   ./build.sh
-   ./run.sh
+   ./scripts/build.sh
+   ./scripts/run.sh
    ```
 
 ### Method 2: Direct Python Installation
@@ -96,7 +96,7 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 3. **Run the server:**
    ```bash
-   python server.py
+   python run_server.py
    ```
 
 ## ⚙️ Configuration
@@ -197,25 +197,25 @@ Use the included Docker manager for easy container operations:
 
 ```bash
 # Build image
-python docker_manager.py build
+python tools/docker_manager.py build
 
 # Start container
-python docker_manager.py start
+python tools/docker_manager.py start
 
 # View logs
-python docker_manager.py logs
+python tools/docker_manager.py logs
 
 # Interactive shell
-python docker_manager.py shell
+python tools/docker_manager.py shell
 
 # Stop container
-python docker_manager.py stop
+python tools/docker_manager.py stop
 
 # Full restart
-python docker_manager.py restart
+python tools/docker_manager.py restart
 
 # Check status
-python docker_manager.py status
+python tools/docker_manager.py status
 ```
 
 ## 🔧 Development
@@ -312,7 +312,7 @@ The server automatically detects model capabilities:
 **Server won't start:**
 ```bash
 # Check environment configuration
-python -c "from config import validate_config; print(validate_config())"
+python -c "from src.config import validate_config; print(validate_config())"
 
 # Verify API key
 echo $OPENROUTER_API_KEY
@@ -321,19 +321,19 @@ echo $OPENROUTER_API_KEY
 **Container issues:**
 ```bash
 # Check container status
-python docker_manager.py status
+python tools/docker_manager.py status
 
 # View detailed logs
-python docker_manager.py logs
+python tools/docker_manager.py logs
 
 # Restart everything
-python docker_manager.py restart
+python tools/docker_manager.py restart
 ```
 
 **Model selection problems:**
 ```bash
 # Test model alias resolution
-python -c "from config import get_model_alias; print(get_model_alias('gemini'))"
+python -c "from src.config import get_model_alias; print(get_model_alias('gemini'))"
 ```
 
 ### Debug Mode
@@ -341,7 +341,7 @@ python -c "from config import get_model_alias; print(get_model_alias('gemini'))"
 Enable detailed logging:
 ```bash
 export LOG_LEVEL=DEBUG
-python server.py
+python run_server.py
 ```
 
 ## 📄 License

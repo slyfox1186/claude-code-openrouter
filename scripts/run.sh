@@ -18,6 +18,6 @@ fi
 echo "Starting OpenRouter MCP Server with Docker..."
 
 # Run with docker-compose
-docker-compose up
+docker-compose -f docker/docker-compose.yml up
 
 echo "OpenRouter MCP Server stopped."
