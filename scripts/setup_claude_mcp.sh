@@ -8,7 +8,7 @@ set -e  # Exit on any error
 # Function to setup OpenRouter MCP and start Claude Code
 setup_claude_mcp() {
     local target_dir="${1:-$(pwd)}"
-    local openrouter_dir="$HOME/tmp/openrouter-connect-improved"
+    local openrouter_dir="${OPENROUTER_DIR:-$(dirname "$(dirname "$(realpath "$0")")")}"
     
     echo "🔧 Setting up OpenRouter MCP connection..."
     
