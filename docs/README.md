@@ -52,11 +52,29 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 ## 📦 Installation
 
+### 🚀 Quick Start (Recommended)
+
+For Claude Code users, the fastest way to get started:
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/slyfox1186/claude-code-openrouter.git
+cd claude-code-openrouter
+cp .env.example .env
+
+# 2. Add your API key to .env file
+nano .env
+
+# 3. Build and setup in one command
+./scripts/build.sh && ./scripts/setup_claude_mcp.sh
+```
+
 ### Prerequisites
 
 - **Python 3.12+** (Required)
 - **Docker & Docker Compose** (Recommended)
 - **OpenRouter API Key** (Required)
+- **Claude Code CLI** (For automated setup)
 
 ### Method 1: Docker Deployment (Recommended)
 
@@ -146,9 +164,34 @@ docker run -it --rm \
   openrouter:latest python tools/docker_manager.py status
 ```
 
-#### Verification
+#### Claude Code MCP Setup (Automated)
 
-After starting the container, verify it's working:
+For Claude Code users, there's an automated setup script that handles the entire MCP connection:
+
+```bash
+# Run the automated setup script
+./scripts/setup_claude_mcp.sh
+
+# Or specify a target directory
+./scripts/setup_claude_mcp.sh /path/to/your/project
+```
+
+**What the setup script does:**
+- ✅ Validates environment configuration
+- ✅ Extracts API key from `.env` file
+- ✅ Manages Docker container lifecycle
+- ✅ Adds MCP connection to Claude Code
+- ✅ Reuses existing containers if available
+- ✅ Handles container restarts automatically
+
+**Prerequisites for automated setup:**
+- Claude Code CLI installed (`claude` command available)
+- Docker image already built (run `./scripts/build.sh` first)
+- Valid `.env` file with `OPENROUTER_API_KEY`
+
+#### Manual Verification
+
+If you prefer to verify the setup manually:
 
 ```bash
 # Check container status
@@ -160,6 +203,9 @@ docker logs openrouter
 # Test the server (from another terminal)
 echo '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}' | \
   docker exec -i openrouter python -m src.server
+
+# List MCP connections in Claude Code
+claude mcp list
 ```
 
 ### Method 2: Direct Python Installation
@@ -334,7 +380,8 @@ openrouter-connect/
 │   └── docker_manager.py  # Docker operations and management
 ├── scripts/               # Build and deployment scripts
 │   ├── build.sh           # Docker build script
-│   └── run.sh            # Docker run script
+│   ├── run.sh            # Docker run script
+│   └── setup_claude_mcp.sh # Automated Claude Code MCP setup
 ├── docker/               # Docker configuration
 │   ├── Dockerfile        # Container definition
 │   └── docker-compose.yml # Service orchestration
