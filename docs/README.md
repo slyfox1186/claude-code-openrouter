@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)](https://www.docker.com/)
 [![MCP](https://img.shields.io/badge/MCP-2024--10--07-purple.svg)](https://modelcontextprotocol.io/)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-400%2B%20Models-orange.svg)](https://openrouter.ai/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](../LICENSE)
 
 **A powerful Model Context Protocol (MCP) server providing unified access to 400+ AI models through OpenRouter's API**
 
@@ -45,10 +45,10 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 
 | Component | Description |
 |-----------|-------------|
-| **`server.py`** | Main MCP server with JSON-RPC protocol implementation |
-| **`config.py`** | Configuration management and model alias resolution |
-| **`conversation_manager.py`** | Persistent conversation storage with UUID sessions |
-| **`docker_manager.py`** | Docker container lifecycle management |
+| **`src/server.py`** | Main MCP server with JSON-RPC protocol implementation |
+| **`src/config.py`** | Configuration management and model alias resolution |
+| **`src/conversation_manager.py`** | Persistent conversation storage with UUID sessions |
+| **`tools/docker_manager.py`** | Docker container lifecycle management |
 
 ## 📦 Installation
 
@@ -223,20 +223,29 @@ python tools/docker_manager.py status
 ### Project Structure
 
 ```
-claude-code-openrouter/
-├── server.py              # Main MCP server implementation
-├── config.py              # Configuration and model management
-├── conversation_manager.py # Conversation persistence
-├── docker_manager.py      # Docker operations
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Container definition
-├── docker-compose.yml     # Service orchestration
-├── build.sh               # Build script
-├── run.sh                 # Runtime script
-├── .env.example           # Environment template
-├── .gitignore             # Git ignore patterns
-├── CLAUDE.md              # Claude Code instructions
-└── README.md              # This file
+openrouter-connect/
+├── src/                   # Source code
+│   ├── server.py          # Main MCP server implementation
+│   ├── config.py          # Configuration and model management
+│   └── conversation_manager.py # Conversation persistence
+├── tools/                 # Development tools
+│   └── docker_manager.py  # Docker operations and management
+├── scripts/               # Build and deployment scripts
+│   ├── build.sh           # Docker build script
+│   └── run.sh            # Docker run script
+├── docker/               # Docker configuration
+│   ├── Dockerfile        # Container definition
+│   └── docker-compose.yml # Service orchestration
+├── docs/                 # Documentation
+│   └── README.md         # This file
+├── examples/             # Usage examples
+│   └── example_usage.py  # Basic usage examples
+├── requirements.txt      # Python dependencies
+├── run_server.py         # Main server launcher
+├── .env.example          # Environment template
+├── .gitignore            # Git ignore patterns
+├── CLAUDE.md             # Claude Code instructions
+└── LICENSE               # Apache 2.0 license
 ```
 
 ### Logging and Debugging
@@ -346,7 +355,7 @@ python run_server.py
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache 2.0 License - see the [LICENSE](../LICENSE) file for details.
 
 ## 🤝 Contributing
 
