@@ -4,673 +4,130 @@
 
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)](https://www.docker.com/)
-[![MCP](https://img.shields.io/badge/MCP-2024--10--07-purple.svg)](https://modelcontextprotocol.io/)
 [![OpenRouter](https://img.shields.io/badge/OpenRouter-400%2B%20Models-orange.svg)](https://openrouter.ai/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](../LICENSE)
 
-**A powerful Model Context Protocol (MCP) server providing unified access to 400+ AI models through OpenRouter's API**
+**Use 400+ AI models (Claude, GPT-4, Gemini, etc.) directly in Claude Code**
 
 </div>
 
-## 🚀 Overview
+## 🚀 Quick Start
 
-OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP clients (like Claude Code) and OpenRouter's extensive AI model ecosystem. It provides seamless access to models from OpenAI, Anthropic, Meta, Google, Mistral, and many other providers through a single, unified interface.
-
-### ✨ Key Features
-
-- **🤖 Multi-Model Access**: Connect to 400+ AI models from 30+ providers
-- **🔄 Conversation Continuity**: Persistent chat history with UUID-based sessions
-- **🎯 Smart Model Selection**: Natural language model aliases (`"gemini"` → `"google/gemini-2.5-pro"`)
-- **📁 Multi-Modal Support**: Handle text, files, and images seamlessly with full file content reading
-- **⚠️ Critical Instructions**: Built-in warnings to ensure Claude Code includes proper context when querying LLMs
-- **🐳 Docker Ready**: Containerized deployment with security best practices
-- **⚡ Performance Optimized**: Intelligent caching and token management
-- **🔧 Developer Friendly**: Comprehensive logging and debugging tools
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   MCP Client    │───▶│  OpenRouter MCP │───▶│   OpenRouter    │
-│  (Claude Code)  │    │     Server      │    │      API        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │  Conversation   │
-                       │    Storage      │
-                       └─────────────────┘
-```
-
-### Core Components
-
-| Component | Description |
-|-----------|-------------|
-| **`src/server.py`** | Main MCP server with JSON-RPC protocol implementation |
-| **`src/config.py`** | Configuration management and model alias resolution |
-| **`src/conversation_manager.py`** | Persistent conversation storage with UUID sessions |
-| **`tools/docker_manager.py`** | Docker container lifecycle management |
-
-## 📦 Installation
-
-### 🚀 Quick Start (Recommended)
-
-For Claude Code users, the fastest way to get started:
+**Get started in 3 commands:**
 
 ```bash
-# 1. Clone and setup
 git clone https://github.com/slyfox1186/claude-code-openrouter.git
 cd claude-code-openrouter
 cp .env.example .env
-
-# 2. Add your API key to .env file
-nano .env
-
-# 3. Build and setup in one command
-./scripts/build.sh && ./scripts/setup_claude_mcp.sh
 ```
 
-### Prerequisites
+**Add your OpenRouter API key to `.env`**, then run:
 
-- **Python 3.12+** (Required)
-- **Docker & Docker Compose** (Recommended)
-- **OpenRouter API Key** (Required)
-- **Claude Code CLI** (For automated setup)
-
-### Method 1: Docker Deployment (Recommended)
-
-#### Prerequisites for Docker
-
-- **Docker**: Install from [docker.com](https://www.docker.com/get-started)
-- **Docker Compose**: Usually included with Docker Desktop
-- **Git**: For cloning the repository
-
-#### Quick Start
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/slyfox1186/claude-code-openrouter.git
-   cd claude-code-openrouter
-   ```
-
-2. **Set up environment:**
-   ```bash
-   # Copy the environment template
-   cp .env.example .env
-   
-   # Edit .env with your OpenRouter API key
-   nano .env
-   # Or use your preferred editor: vim .env, code .env, etc.
-   ```
-
-3. **Build and run (Option A - Using Scripts):**
-   ```bash
-   # Make scripts executable
-   chmod +x scripts/build.sh scripts/run.sh
-   
-   # Build the Docker image
-   ./scripts/build.sh
-   
-   # Run the container
-   ./scripts/run.sh
-   ```
-
-4. **Alternative: Build and run (Option B - Using Docker Compose):**
-   ```bash
-   # Build and start in one command
-   docker-compose -f docker/docker-compose.yml up --build
-   
-   # Or run in detached mode
-   docker-compose -f docker/docker-compose.yml up --build -d
-   ```
-
-#### Docker Management Options
-
-**Using the Python Docker Manager:**
 ```bash
-# Build the image
-python tools/docker_manager.py build
-
-# Start the container
-python tools/docker_manager.py start
-
-# Check status
-python tools/docker_manager.py status
-
-# View logs
-python tools/docker_manager.py logs
-
-# Stop the container
-python tools/docker_manager.py stop
-
-# Get interactive shell
-python tools/docker_manager.py shell
-```
-
-**Using Docker Commands Directly:**
-```bash
-# Build image
 docker build -t openrouter:latest -f docker/Dockerfile .
-
-# Run container (interactive for MCP)
-docker run -i --rm \
-  --env-file .env \
-  -v $HOME:/host$HOME:ro \
-  openrouter:latest
-
-# Run container with custom command
-docker run -it --rm \
-  --env-file .env \
-  -v $HOME:/host$HOME:ro \
-  openrouter:latest python tools/docker_manager.py status
-```
-
-#### Claude Code MCP Setup (Automated)
-
-For Claude Code users, there's an automated setup script that handles the entire MCP connection:
-
-```bash
-# Run the automated setup script
-./scripts/setup_claude_mcp.sh
-
-# Or specify a target directory
-./scripts/setup_claude_mcp.sh /path/to/your/project
-```
-
-**Setup Script Commands:**
-```bash
-# MCP connection management
-./scripts/setup_claude_mcp.sh setup    # Setup MCP connection (default)
-./scripts/setup_claude_mcp.sh          # Same as setup
-
-# Docker container management
-./scripts/setup_claude_mcp.sh stop     # Stop OpenRouter container
-./scripts/setup_claude_mcp.sh build    # Build OpenRouter Docker image
-./scripts/setup_claude_mcp.sh start    # Start OpenRouter container
-./scripts/setup_claude_mcp.sh restart  # Restart OpenRouter container
-./scripts/setup_claude_mcp.sh status   # Check container status
-./scripts/setup_claude_mcp.sh logs     # View container logs
-
-# Get help
-./scripts/setup_claude_mcp.sh help     # Show usage information
-```
-
-**What the setup script does:**
-- ✅ Validates environment configuration
-- ✅ Extracts API key from `.env` file
-- ✅ Manages Docker container lifecycle
-- ✅ Adds MCP connection to Claude Code
-- ✅ Reuses existing containers if available
-- ✅ Handles container restarts automatically
-- ✅ Provides unified interface for all Docker operations
-
-**Prerequisites for automated setup:**
-- Claude Code CLI installed (`claude` command available)
-- Docker image already built (run `./scripts/build.sh` first)
-- Valid `.env` file with `OPENROUTER_API_KEY`
-
-**Using from any directory:**
-The setup script automatically detects the project directory and works from anywhere:
-
-```bash
-# From any directory - use absolute path
-/path/to/openrouter-connect/scripts/setup_claude_mcp.sh build
-
-# Or set environment variable
-export OPENROUTER_DIR=/path/to/openrouter-connect
-./scripts/setup_claude_mcp.sh build
-
-# Or create a global alias (add to ~/.bashrc or ~/.zshrc)
-alias openrouter-mcp='/path/to/openrouter-connect/scripts/setup_claude_mcp.sh'
-openrouter-mcp build
-```
-
-**Global Installation (Optional):**
-
-To make the command available system-wide:
-
-```bash
-# Option 1: System-wide installation (requires sudo)
-sudo ./scripts/install_global.sh
-
-# Option 2: User-local installation (no sudo required)
-./scripts/install_local.sh
-
-# Then use from anywhere:
-openrouter-mcp build
-openrouter-mcp setup
-openrouter-mcp status
-```
-
-#### Manual Setup
-
-If you prefer to set up the MCP connection manually instead of using the automated script:
-
-```bash
-# 1. First, make sure your container is running
-docker ps | grep openrouter
-
-# 2. Add the MCP connection to Claude Code
+docker run -d --name openrouter --env-file .env -v "$HOME:/host$HOME:ro" --restart unless-stopped openrouter:latest
 claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
-
-# 3. Verify the connection was added
-claude mcp list
 ```
 
-#### Manual Verification
+**Done!** Now you can use any OpenRouter model in Claude Code.
 
-Additional verification commands:
+## 🔑 Get Your API Key
 
+1. Go to [OpenRouter.ai](https://openrouter.ai/)
+2. Sign up and get an API key
+3. Add it to your `.env` file:
+   ```
+   OPENROUTER_API_KEY=your_key_here
+   ```
+
+## 🎯 What You Get
+
+- **400+ AI Models**: Claude Opus, GPT-4, Gemini Pro, and hundreds more
+- **File Attachments**: Send files to any model and get analysis
+- **Conversation Memory**: Continue conversations across multiple requests
+- **Model Switching**: Change models mid-conversation
+
+## 💬 Usage Examples
+
+**Chat with different models:**
 ```bash
-# Check container status
+# Use Gemini Pro
+openrouter-docker - chat (model: "gemini", prompt: "Explain quantum computing")
+
+# Switch to Claude Opus for creative tasks
+openrouter-docker - chat (model: "claude-opus", prompt: "Write a short story")
+
+# Continue previous conversation
+openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Tell me more")
+```
+
+**Attach files for analysis:**
+```bash
+# Send code files to any model
+openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py"], prompt: "Review this code")
+```
+
+## 🤖 Available Models
+
+Just use simple names:
+
+- `gemini` → Google Gemini 2.5 Pro
+- `claude` → Claude Sonnet 4
+- `claude-opus` → Claude Opus 4  
+- `gpt-4` → OpenAI GPT-4
+- `kimi` → Moonshot Kimi K2
+
+## 🛠️ Management Commands
+
+**Check status:**
+```bash
 docker ps | grep openrouter
+```
 
-# View container logs
+**View logs:**
+```bash
 docker logs openrouter
+```
 
-# Test the server (from another terminal)
-echo '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}' | \
-  docker exec -i openrouter python -m src.server
+**Restart if needed:**
+```bash
+docker restart openrouter
+```
 
-# List MCP connections in Claude Code
-claude mcp list
-
-# Remove MCP connection (if needed)
+**Remove and reinstall:**
+```bash
 claude mcp remove openrouter-docker
+docker stop openrouter && docker rm openrouter
+# Then run the setup commands again
 ```
 
-### Method 2: Direct Python Installation
+## ⚠️ Troubleshooting
 
-1. **Clone and install dependencies:**
-   ```bash
-   git clone https://github.com/slyfox1186/claude-code-openrouter.git
-   cd claude-code-openrouter
-   pip install -r requirements.txt
-   ```
-
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Add your OpenRouter API key to .env
-   ```
-
-3. **Run the server:**
-   ```bash
-   python run_server.py
-   ```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file based on `.env.example`:
-
-```env
-# OpenRouter API Configuration
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-
-# Default Model Settings
-DEFAULT_MODEL=moonshotai/kimi-k2
-DEFAULT_TEMPERATURE=0.7
-DEFAULT_MAX_TOKENS=4096
-
-# Tool Configuration
-ENABLE_WEB_SEARCH=true
-MAX_CONTEXT_TOKENS=100000
-TOKEN_BUDGET_LIMIT=50000
-
-# Logging Configuration
-LOG_LEVEL=INFO
-LOG_FILE=openrouter_mcp.log
-
-# Optional: Rate limiting
-RATE_LIMIT_REQUESTS_PER_MINUTE=60
-RATE_LIMIT_TOKENS_PER_MINUTE=100000
-```
-
-### 🔑 Getting Your OpenRouter API Key
-
-1. Visit [OpenRouter.ai](https://openrouter.ai/)
-2. Sign up for an account
-3. Navigate to the API Keys section
-4. Generate a new API key
-5. Add it to your `.env` file as `OPENROUTER_API_KEY`
-
-## 🎯 Usage
-
-### Live Example
-
-Here's the OpenRouter MCP server in action with Claude Code:
-
-![OpenRouter MCP Server in Action 1](https://i.imgur.com/EWeYACE.png)
-![OpenRouter MCP Server in Action 2](https://i.imgur.com/4kNID46.png)
-![OpenRouter MCP Server in Action 3](https://i.imgur.com/s2HOphS.png)
-
-*Example showing successful connection to different AI models (Gemini, Claude Opus) through the OpenRouter MCP server, with conversation continuity and model switching capabilities.*
-
-### MCP Tools Available
-
-The server exposes these MCP tools for client interaction:
-
-| Tool | Description |
-|------|-------------|
-| **`chat`** | Main chat interface with model selection, conversation continuation, and file attachments |
-| **`list_conversations`** | View all stored conversation summaries |
-| **`get_conversation`** | Retrieve full conversation history by ID |
-| **`delete_conversation`** | Remove a conversation from storage |
-
-### 🆕 Recent Improvements
-
-**Version 2.1.0 - File Attachment Support:**
-- ✅ **Full File Reading**: Files are now properly read and their content included in prompts
-- ✅ **Path Translation**: Automatic host-to-container path mapping for Docker environments
-- ✅ **Multi-file Support**: Handle multiple file attachments in a single request
-- ✅ **Critical Instructions**: Built-in warnings in tool descriptions to ensure proper context
-- ✅ **Container Stability**: Fixed MCP connection stability issues with improved Docker setup
-- ✅ **Debug Logging**: Enhanced logging for troubleshooting file reading issues
-
-**Verified Working:**
+**Container not running?**
 ```bash
-# ✅ This now works correctly - files are read and content included
-openrouter-docker - chat (model: "gemini", files: ["/path/to/file.py"], prompt: "Analyze this code")
-# ✅ Conversation continuity works perfectly
-openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Follow up question")
+docker restart openrouter
 ```
 
-### Model Selection
-
-The server supports intelligent model aliases:
-
-```json
-{
-  "model": "gemini"          // → google/gemini-2.5-pro
-  "model": "claude"          // → anthropic/claude-sonnet-4
-  "model": "claude opus"     // → anthropic/claude-opus-4
-  "model": "kimi"            // → moonshotai/kimi-k2
-  "model": "gpt-4"           // → openai/gpt-4
-}
-```
-
-### Conversation Continuity
-
-Each chat session returns a `continuation_id` that can be used to maintain context:
-
-```json
-{
-  "prompt": "Follow up question...",
-  "continuation_id": "uuid-from-previous-response"
-}
-```
-
-### Multi-Modal Input
-
-**✅ Full File Attachment Support** - The server now successfully reads and includes file contents in prompts:
-
-```json
-{
-  "prompt": "Analyze this code",
-  "files": ["/path/to/file.py"],
-  "images": ["/path/to/screenshot.png"],
-  "model": "gemini"
-}
-```
-
-**Key Features:**
-- **📁 File Content Reading**: Automatically reads and includes full file content in the prompt
-- **🔗 Path Translation**: Handles host-to-container path mapping for Docker deployment
-- **🖼️ Image Support**: Accepts image file paths for vision-capable models
-- **⚠️ Critical Instructions**: Built-in warnings for Claude Code to ensure proper context inclusion
-
-**Example Usage:**
+**MCP connection issues?**
 ```bash
-# Files are automatically read and content included
-openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py"], prompt: "Analyze this code")
-# ✅ File content is read and sent to Gemini with full context
+claude mcp remove openrouter-docker
+claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
 ```
 
-## 🐳 Docker Management
-
-### Container Lifecycle Management
-
-The project includes a comprehensive Docker management system:
-
-**Python Docker Manager (Recommended):**
-```bash
-# Complete lifecycle management
-python tools/docker_manager.py build    # Build new image
-python tools/docker_manager.py start    # Start container
-python tools/docker_manager.py restart  # Full restart (stop + start)
-python tools/docker_manager.py stop     # Stop container
-python tools/docker_manager.py status   # Check container status
-
-# Debugging and monitoring
-python tools/docker_manager.py logs     # View container logs
-python tools/docker_manager.py shell    # Interactive shell access
-```
-
-**Docker Compose (Alternative):**
-```bash
-# Using docker-compose directly
-docker-compose -f docker/docker-compose.yml up --build -d  # Build and start
-docker-compose -f docker/docker-compose.yml logs -f        # Follow logs
-docker-compose -f docker/docker-compose.yml restart        # Restart service
-docker-compose -f docker/docker-compose.yml down           # Stop and remove
-```
-
-**Manual Docker Commands:**
-```bash
-# For advanced users who prefer direct control
-docker build -t openrouter:latest -f docker/Dockerfile .
-docker run -i --rm --env-file .env -v $HOME:/host$HOME:ro openrouter:latest
-docker logs openrouter
-docker exec -it openrouter /bin/bash
-```
-
-### Container Features
-
-- **Persistent Storage**: Conversation history survives container restarts
-- **File Access**: Read-only access to host filesystem for file processing
-- **Environment Integration**: Automatic `.env` file loading
-- **Security**: Runs as non-root user with minimal privileges
-- **Interactive Mode**: Supports both daemon and interactive MCP execution
-
-## 🔧 Development
-
-### Project Structure
-
-```
-openrouter-connect/
-├── src/                   # Source code
-│   ├── server.py          # Main MCP server implementation
-│   ├── config.py          # Configuration and model management
-│   └── conversation_manager.py # Conversation persistence
-├── tools/                 # Development tools
-│   └── docker_manager.py  # Docker operations and management
-├── scripts/               # Build and deployment scripts
-│   ├── build.sh           # Docker build script
-│   ├── run.sh            # Docker run script
-│   ├── setup_claude_mcp.sh # Automated Claude Code MCP setup
-│   ├── install_global.sh  # Global installation (requires sudo)
-│   └── install_local.sh   # Local installation (user-only)
-├── docker/               # Docker configuration
-│   ├── Dockerfile        # Container definition
-│   └── docker-compose.yml # Service orchestration
-├── docs/                 # Documentation
-│   └── README.md         # This file
-├── examples/             # Usage examples
-│   └── example_usage.py  # Basic usage examples
-├── requirements.txt      # Python dependencies
-├── run_server.py         # Main server launcher
-├── .env.example          # Environment template
-├── .gitignore            # Git ignore patterns
-├── CLAUDE.md             # Claude Code instructions
-└── LICENSE               # Apache 2.0 license
-```
-
-### Logging and Debugging
-
-- **Server logs**: `/tmp/openrouter_debug.log`
-- **Application logs**: `openrouter_mcp.log`
-- **Container logs**: `docker logs openrouter`
-
-### Model Capabilities
-
-The server automatically detects model capabilities:
-
-- **Vision Models**: Handle image inputs (Gemini Pro, GPT-4V)
-- **Large Context**: Support extended conversations (Kimi K2, Gemini)
-- **Function Calling**: Tool use capabilities (Gemini Pro, GPT-4)
-
-## 🚨 Security & Best Practices
-
-### Environment Security
-
-- ✅ **Never commit `.env` files** (protected by `.gitignore`)
-- ✅ **Use `.env.example` for templates**
-- ✅ **Run containers as non-root user**
-- ✅ **Read-only volume mounts**
-
-### API Key Management
-
-- 🔐 Store API keys in `.env` only
-- 🔐 Use environment variables in production
-- 🔐 Rotate keys regularly
-- 🔐 Monitor usage and billing
-
-## 📊 Monitoring & Performance
-
-### Token Management
-
-- Automatic conversation truncation to prevent API limits
-- Token usage tracking and reporting
-- Configurable token budgets per request
-
-### Performance Features
-
-- In-memory conversation caching
-- Efficient JSON-RPC protocol
-- Streaming response support
-- Request rate limiting
-
-## 🔄 Supported Models
-
-### Popular Model Aliases
-
-| Alias | Full Model Name | Provider |
-|-------|-----------------|----------|
-| `gemini` | `google/gemini-2.5-pro` | Google |
-| `claude` | `anthropic/claude-sonnet-4` | Anthropic |
-| `claude-opus` | `anthropic/claude-opus-4` | Anthropic |
-| `kimi` | `moonshotai/kimi-k2` | Moonshot |
-| `gpt-4` | `openai/gpt-4` | OpenAI |
-| `llama` | `meta-llama/llama-3.1-8b-instruct` | Meta |
-
-### Model Categories
-
-- **💬 Chat Models**: General conversation and reasoning
-- **👁️ Vision Models**: Image understanding and analysis
-- **🔧 Function Models**: Tool use and function calling
-- **📚 Long Context**: Extended conversation memory
-- **⚡ Fast Models**: Quick responses and low latency
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Server won't start:**
-```bash
-# Check environment configuration
-python -c "from src.config import validate_config; print(validate_config())"
-
-# Verify API key
-echo $OPENROUTER_API_KEY
-```
-
-**Container issues:**
-```bash
-# Check container status
-python tools/docker_manager.py status
-
-# View detailed logs
-python tools/docker_manager.py logs
-
-# Restart everything
-python tools/docker_manager.py restart
-```
-
-**Model selection problems:**
-```bash
-# Test model alias resolution
-python -c "from src.config import get_model_alias; print(get_model_alias('gemini'))"
-python -c "from src.config import get_model_alias; print(get_model_alias('claude'))"
-python -c "from src.config import get_model_alias; print(get_model_alias('claude-opus'))"
-```
-
-**Claude model "not a valid model ID" errors:**
-If you get errors like `anthropic/claude-4-opus is not a valid model ID`, this means the model aliases are outdated. The correct OpenRouter model IDs are:
-- `anthropic/claude-sonnet-4` (for "claude" alias)
-- `anthropic/claude-opus-4` (for "claude-opus" alias)
-
-The server automatically maps these aliases, but you can verify by checking the container logs:
-```bash
-docker logs openrouter | grep "MODEL MAPPING"
-```
-
-**MCP connection issues:**
-If you experience frequent disconnections from the MCP server, try these commands:
-
-```bash
-# Quick reconnection fix
-clear; claude mcp remove openrouter-docker; claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
-
-# Or use the automated troubleshooting script
-./scripts/troubleshoot_mcp.sh
-```
-
-### Debug Mode
-
-Enable detailed logging:
-```bash
-export LOG_LEVEL=DEBUG
-python run_server.py
-```
+**Still having issues?**
+- Check your API key in `.env`
+- Make sure Docker is running
+- [Open an issue](https://github.com/slyfox1186/claude-code-openrouter/issues)
 
 ## 📄 License
 
-This project is licensed under the Apache 2.0 License - see the [LICENSE](../LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 🙏 Acknowledgments
-
-- [OpenRouter](https://openrouter.ai/) for providing unified AI model access
-- [Model Context Protocol](https://modelcontextprotocol.io/) for the standard
-- [Anthropic](https://anthropic.com/) for Claude and MCP development
-
-## 📞 Support
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/slyfox1186/claude-code-openrouter/issues)
-- **OpenRouter Documentation**: [OpenRouter API Docs](https://openrouter.ai/docs)
-- **MCP Specification**: [Model Context Protocol](https://modelcontextprotocol.io/)
+Apache 2.0 License - see [LICENSE](../LICENSE)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for the AI development community**
+**Made with ❤️ for Claude Code users**
 
 [![GitHub stars](https://img.shields.io/github/stars/slyfox1186/claude-code-openrouter.svg?style=social)](https://github.com/slyfox1186/claude-code-openrouter/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/slyfox1186/claude-code-openrouter.svg?style=social)](https://github.com/slyfox1186/claude-code-openrouter/network)
 
 </div>
