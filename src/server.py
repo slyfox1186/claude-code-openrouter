@@ -64,13 +64,13 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL: You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context.",
+            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'claude', 'claude-opus', 'kimi' - NEVER use full OpenRouter model names like 'google/gemini-pro-1.5'! 3) CRITICAL: You MUST use the continuation_id from previous responses in follow-up messages to maintain conversation context - this is REQUIRED for proper conversation flow!",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "Model alias (e.g., 'gemini', 'claude', 'kimi')", "default": DEFAULT_MODEL},
-                    "continuation_id": {"type": "string", "description": "Conversation ID to continue"},
+                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro), 'claude' (for anthropic/claude-sonnet-4), 'claude-opus' (for anthropic/claude-opus-4), 'kimi' (for moonshotai/kimi-k2). NEVER use google/gemini-pro-1.5 or any other full model names!", "default": DEFAULT_MODEL},
+                    "continuation_id": {"type": "string", "description": "⚠️ REQUIRED for follow-up messages: Conversation ID from previous response - YOU MUST use this to maintain conversation context!"},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Optional files for context (absolute paths)"},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "Optional images for visual context (absolute paths)"}
                 },
@@ -179,11 +179,15 @@ def handle_chat_tool(arguments, req_id):
     
     # Add user message with enhanced content
     conversation_manager.add_message(continuation_id, "user", enhanced_prompt)
-    messages = conversation_manager.get_conversation_history(continuation_id)
+    # Limit conversation history to prevent 400 errors from token overflow
+    messages = conversation_manager.get_conversation_history(continuation_id, max_tokens=50000)
     
     # Debug: log what we're actually sending
     logger.info(f"Enhanced prompt length: {len(enhanced_prompt)}")
     logger.info(f"Number of messages being sent: {len(messages)}")
+    total_chars = sum(len(msg["content"]) for msg in messages)
+    estimated_tokens = total_chars // 4
+    logger.info(f"Estimated conversation tokens: {estimated_tokens}")
     logger.info(f"Last message content preview: {enhanced_prompt[:200]}...")
     
     try:
@@ -227,7 +231,8 @@ def handle_chat_tool(arguments, req_id):
                 "content": [{
                     "type": "text",
                     "text": f"**{actual_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*"
-                }]
+                }],
+                "continuation_id": continuation_id
             }
         })
         
@@ -282,7 +287,7 @@ def handle_get_conversation(arguments, req_id):
         return
     
     try:
-        history = conversation_manager.get_conversation_history(continuation_id)
+        history = conversation_manager.get_conversation_history(continuation_id, max_tokens=50000)
         if not history:
             result_text = f"Conversation '{continuation_id}' not found."
         else:
