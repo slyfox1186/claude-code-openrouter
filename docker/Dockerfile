@@ -25,5 +25,5 @@ USER mcpuser
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Run the server
-CMD ["python3", "-m", "src.server"]
+# Keep container running for MCP exec
+CMD ["tail", "-f", "/dev/null"]
