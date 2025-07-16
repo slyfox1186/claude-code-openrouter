@@ -21,7 +21,8 @@ OpenRouter MCP Server is a Python-based tool that bridges the gap between MCP cl
 - **🤖 Multi-Model Access**: Connect to 400+ AI models from 30+ providers
 - **🔄 Conversation Continuity**: Persistent chat history with UUID-based sessions
 - **🎯 Smart Model Selection**: Natural language model aliases (`"gemini"` → `"google/gemini-2.5-pro"`)
-- **📁 Multi-Modal Support**: Handle text, files, and images seamlessly
+- **📁 Multi-Modal Support**: Handle text, files, and images seamlessly with full file content reading
+- **⚠️ Critical Instructions**: Built-in warnings to ensure Claude Code includes proper context when querying LLMs
 - **🐳 Docker Ready**: Containerized deployment with security best practices
 - **⚡ Performance Optimized**: Intelligent caching and token management
 - **🔧 Developer Friendly**: Comprehensive logging and debugging tools
@@ -354,10 +355,28 @@ The server exposes these MCP tools for client interaction:
 
 | Tool | Description |
 |------|-------------|
-| **`chat`** | Main chat interface with model selection and conversation continuation |
+| **`chat`** | Main chat interface with model selection, conversation continuation, and file attachments |
 | **`list_conversations`** | View all stored conversation summaries |
 | **`get_conversation`** | Retrieve full conversation history by ID |
 | **`delete_conversation`** | Remove a conversation from storage |
+
+### 🆕 Recent Improvements
+
+**Version 2.1.0 - File Attachment Support:**
+- ✅ **Full File Reading**: Files are now properly read and their content included in prompts
+- ✅ **Path Translation**: Automatic host-to-container path mapping for Docker environments
+- ✅ **Multi-file Support**: Handle multiple file attachments in a single request
+- ✅ **Critical Instructions**: Built-in warnings in tool descriptions to ensure proper context
+- ✅ **Container Stability**: Fixed MCP connection stability issues with improved Docker setup
+- ✅ **Debug Logging**: Enhanced logging for troubleshooting file reading issues
+
+**Verified Working:**
+```bash
+# ✅ This now works correctly - files are read and content included
+openrouter-docker - chat (model: "gemini", files: ["/path/to/file.py"], prompt: "Analyze this code")
+# ✅ Conversation continuity works perfectly
+openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Follow up question")
+```
 
 ### Model Selection
 
@@ -386,7 +405,7 @@ Each chat session returns a `continuation_id` that can be used to maintain conte
 
 ### Multi-Modal Input
 
-Support for various input types:
+**✅ Full File Attachment Support** - The server now successfully reads and includes file contents in prompts:
 
 ```json
 {
@@ -395,6 +414,19 @@ Support for various input types:
   "images": ["/path/to/screenshot.png"],
   "model": "gemini"
 }
+```
+
+**Key Features:**
+- **📁 File Content Reading**: Automatically reads and includes full file content in the prompt
+- **🔗 Path Translation**: Handles host-to-container path mapping for Docker deployment
+- **🖼️ Image Support**: Accepts image file paths for vision-capable models
+- **⚠️ Critical Instructions**: Built-in warnings for Claude Code to ensure proper context inclusion
+
+**Example Usage:**
+```bash
+# Files are automatically read and content included
+openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py"], prompt: "Analyze this code")
+# ✅ File content is read and sent to Gemini with full context
 ```
 
 ## 🐳 Docker Management
@@ -585,6 +617,17 @@ The server automatically maps these aliases, but you can verify by checking the 
 docker logs openrouter | grep "MODEL MAPPING"
 ```
 
+**MCP connection issues:**
+If you experience frequent disconnections from the MCP server, try these commands:
+
+```bash
+# Quick reconnection fix
+clear; claude mcp remove openrouter-docker; claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
+
+# Or use the automated troubleshooting script
+./scripts/troubleshoot_mcp.sh
+```
+
 ### Debug Mode
 
 Enable detailed logging:
@@ -631,4 +674,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 [![GitHub forks](https://img.shields.io/github/forks/slyfox1186/claude-code-openrouter.svg?style=social)](https://github.com/slyfox1186/claude-code-openrouter/network)
 
 </div>
-
