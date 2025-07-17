@@ -75,7 +75,7 @@ The server exposes these MCP tools:
 
 Required environment variables in `.env`:
 - `OPENROUTER_API_KEY`: Your OpenRouter API key
-- `DEFAULT_MODEL`: Default model (default: "moonshotai/kimi-k2")
+- `DEFAULT_MODEL`: Default model (default: "deepseek/deepseek-r1-0528")
 - `DEFAULT_TEMPERATURE`: Response randomness (default: 0.7)
 - `LOG_LEVEL`: Logging verbosity (default: "INFO")
 
@@ -112,7 +112,7 @@ Required environment variables in `.env`:
 
 The server automatically detects and routes based on model capabilities:
 - **Vision Models**: Handle image inputs (Gemini Pro, GPT-4V)
-- **Large Context**: Support extended conversations (Kimi K2, Gemini)
+- **Large Context**: Support extended conversations (DeepSeek R1, Gemini)
 - **Function Calling**: Tool use capabilities (Gemini Pro, GPT-4)
 
 ### Performance Considerations
