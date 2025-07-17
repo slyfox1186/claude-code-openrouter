@@ -71,10 +71,8 @@ openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py"], prompt: 
 Just use simple names:
 
 - `gemini` → Google Gemini 2.5 Pro
-- `claude` → Claude Sonnet 4
-- `claude-opus` → Claude Opus 4  
 - `gpt-4` → OpenAI GPT-4
-- `kimi` → Moonshot Kimi K2
+- `deepseek` → DeepSeek R1
 
 ## 🛠️ Management Commands
 

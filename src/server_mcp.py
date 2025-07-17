@@ -34,7 +34,7 @@ logger = logging.getLogger("openrouter-mcp")
 # Configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "moonshotai/kimi-k2")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
 
 # Model aliases
 PREFERRED_MODELS = {
@@ -44,7 +44,7 @@ PREFERRED_MODELS = {
     "claude-opus-4": "anthropic/claude-opus-4",
     "claude-4-sonnet": "anthropic/claude-sonnet-4",
     "claude-sonnet-4": "anthropic/claude-sonnet-4",
-    "kimi-k2": "moonshotai/kimi-k2"
+    "deepseek-r1": "deepseek/deepseek-r1-0528"
 }
 
 # Conversation storage
@@ -77,8 +77,8 @@ def get_model_alias(model_name: str) -> str:
         else:
             return PREFERRED_MODELS["claude-sonnet-4"]
     
-    if any(word in model_clean for word in ["kimi", "moonshot", "k2"]):
-        return PREFERRED_MODELS["kimi-k2"]
+    if any(word in model_clean for word in ["deepseek", "r1"]):
+        return PREFERRED_MODELS["deepseek-r1"]
     
     # If no alias found, assume it's already a full model name
     return model_name
@@ -86,7 +86,7 @@ def get_model_alias(model_name: str) -> str:
 async def call_openrouter_api(
     messages: List[Dict[str, Any]], 
     model: str = DEFAULT_MODEL,
-    max_tokens: int = 4096,
+    max_tokens: int = 1000000,
     temperature: float = 0.7
 ) -> Dict[str, Any]:
     """Call OpenRouter API with messages"""
@@ -138,7 +138,7 @@ async def list_tools() -> List[Tool]:
                     },
                     "model": {
                         "type": "string",
-                        "description": "Model to use (e.g., 'gemini', 'claude', 'kimi')",
+                        "description": "Model to use (e.g., 'gemini', 'deepseek'),"
                         "default": DEFAULT_MODEL
                     },
                     "continuation_id": {
@@ -149,7 +149,7 @@ async def list_tools() -> List[Tool]:
                     "max_tokens": {
                         "type": "integer",
                         "description": "Maximum tokens in response",
-                        "default": 4096
+                        "default": 1000000
                     },
                     "temperature": {
                         "type": "number",
@@ -227,7 +227,7 @@ async def handle_chat(arguments: Dict[str, Any]) -> CallToolResult:
     prompt = arguments.get("prompt")
     model = arguments.get("model", DEFAULT_MODEL)
     continuation_id = arguments.get("continuation_id")
-    max_tokens = arguments.get("max_tokens", 4096)
+    max_tokens = arguments.get("max_tokens", 1000000)
     temperature = arguments.get("temperature", 0.7)
     
     if not prompt:

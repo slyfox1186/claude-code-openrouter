@@ -19,12 +19,10 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/ap
 # Default model settings
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
-DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "4096"))
+DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "1000000"))
 
 # Tool configuration
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
-MAX_CONTEXT_TOKENS = int(os.getenv("MAX_CONTEXT_TOKENS", "100000"))
-TOKEN_BUDGET_LIMIT = int(os.getenv("TOKEN_BUDGET_LIMIT", "50000"))
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -32,7 +30,6 @@ LOG_FILE = os.getenv("LOG_FILE", "openrouter_mcp.log")
 
 # Rate limiting
 RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
-RATE_LIMIT_TOKENS_PER_MINUTE = int(os.getenv("RATE_LIMIT_TOKENS_PER_MINUTE", "100000"))
 
 # MCP Transport limits
 MAX_MESSAGE_SIZE = int(os.getenv("MAX_MESSAGE_SIZE", "10485760"))  # 10MB
@@ -44,14 +41,14 @@ PREFERRED_MODELS = {
     "gemini-pro": "google/gemini-2.5-pro",
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
-    "kimi-k2": "moonshotai/kimi-k2"
+    "deepseek-r1": "deepseek/deepseek-r1-0528"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro"],
     "function_calling": ["google/gemini-2.5-pro"],
-    "large_context": ["moonshotai/kimi-k2", "google/gemini-2.5-pro"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro"],
 }
 
 def get_config() -> Dict[str, Any]:
@@ -70,8 +67,6 @@ def get_config() -> Dict[str, Any]:
         },
         "tools": {
             "web_search": ENABLE_WEB_SEARCH,
-            "max_context_tokens": MAX_CONTEXT_TOKENS,
-            "token_budget_limit": TOKEN_BUDGET_LIMIT,
         },
         "logging": {
             "level": LOG_LEVEL,
@@ -79,7 +74,6 @@ def get_config() -> Dict[str, Any]:
         },
         "rate_limits": {
             "requests_per_minute": RATE_LIMIT_REQUESTS_PER_MINUTE,
-            "tokens_per_minute": RATE_LIMIT_TOKENS_PER_MINUTE,
         },
         "transport": {
             "max_message_size": MAX_MESSAGE_SIZE,
@@ -134,9 +128,9 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
     
-    # "kimi" or "moonshot" -> kimi-k2
-    if any(word in model_clean for word in ["kimi", "moonshot", "k2"]):
-        return PREFERRED_MODELS["kimi-k2"]
+    # "deepseek" -> deepseek-r1-0528
+    if any(word in model_clean for word in ["deepseek", "r1"]):
+        return PREFERRED_MODELS["deepseek-r1"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
     for alias, actual_model in PREFERRED_MODELS.items():
