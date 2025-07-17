@@ -42,10 +42,8 @@ MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
 PREFERRED_MODELS = {
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     "gemini-pro": "google/gemini-2.5-pro",
-    "claude-4-opus": "anthropic/claude-opus-4",
-    "claude-opus-4": "anthropic/claude-opus-4",
-    "claude-4-sonnet": "anthropic/claude-sonnet-4",
-    "claude-sonnet-4": "anthropic/claude-sonnet-4",
+    "deepseek-r1": "deepseek/deepseek-r1-0528",
+    "deepseek": "deepseek/deepseek-r1-0528",
     "kimi-k2": "moonshotai/kimi-k2"
 }
 
@@ -132,13 +130,9 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["gemini", "google"]):
         return PREFERRED_MODELS["gemini-2.5-pro"]
     
-    # "claude" or "anthropic" -> claude-sonnet-4 (default Claude)
-    if any(word in model_clean for word in ["claude", "anthropic"]):
-        # Check if they specifically want opus
-        if "opus" in model_clean:
-            return PREFERRED_MODELS["claude-opus-4"]
-        else:
-            return PREFERRED_MODELS["claude-sonnet-4"]
+    # "deepseek" -> deepseek-r1-0528
+    if any(word in model_clean for word in ["deepseek", "r1"]):
+        return PREFERRED_MODELS["deepseek-r1"]
     
     # "kimi" or "moonshot" -> kimi-k2
     if any(word in model_clean for word in ["kimi", "moonshot", "k2"]):
