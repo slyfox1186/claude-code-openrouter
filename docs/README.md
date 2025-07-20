@@ -12,23 +12,62 @@
 
 ## 🚀 Quick Start
 
-**Get started in 3 commands:**
+**Get started in 4 simple steps:**
 
+### Step 1: Clone and Setup
 ```bash
 git clone https://github.com/slyfox1186/claude-code-openrouter.git
 cd claude-code-openrouter
-cp .env.example .env
 ```
 
-**Add your OpenRouter API key to `.env`**, then run:
-
+### Step 2: Configure API Key
+Create a `.env` file with your OpenRouter API key:
 ```bash
-docker build -t openrouter:latest -f docker/Dockerfile .
-docker run -d --name openrouter --env-file .env -v "$HOME:/host$HOME:ro" --restart unless-stopped openrouter:latest
-claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
+# Create .env file
+cat > .env << EOF
+# OpenRouter API Configuration
+OPENROUTER_API_KEY=sk-or-v1-your_actual_api_key_here
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+
+# Default Model Settings
+DEFAULT_MODEL=deepseek/deepseek-r1-0528
+DEFAULT_TEMPERATURE=0.7
+DEFAULT_MAX_TOKENS=1000000
+
+# Tool Configuration
+ENABLE_WEB_SEARCH=true
+
+# Logging Configuration
+LOG_LEVEL=INFO
+LOG_FILE=openrouter_mcp.log
+
+# Optional: Rate limiting
+RATE_LIMIT_REQUESTS_PER_MINUTE=60
+
+# Docker Compose Bake delegation for better build performance
+COMPOSE_BAKE=true
+EOF
 ```
 
-**Done!** Now you can use any OpenRouter model in Claude Code.
+**Replace `sk-or-v1-your_actual_api_key_here` with your actual OpenRouter API key!**
+
+### Step 3: Build and Start Container
+```bash
+# Make scripts executable
+chmod +x tools/docker_manager.py add_mcp.sh
+
+# Build and start the container
+python3 tools/docker_manager.py build
+python3 tools/docker_manager.py start
+```
+
+### Step 4: Connect to Claude Code
+```bash
+# Add MCP server to Claude Code
+./add_mcp.sh
+```
+
+**Done!** Now you can use any OpenRouter model in Claude Code with large file support.
 
 ## 🔑 Get Your API Key
 
@@ -41,20 +80,22 @@ claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m
 
 ## 🎯 What You Get
 
-- **400+ AI Models**: Claude Opus, GPT-4, Gemini Pro, and hundreds more
-- **File Attachments**: Send files to any model and get analysis
-- **Conversation Memory**: Continue conversations across multiple requests
-- **Model Switching**: Change models mid-conversation
+- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro, and hundreds more
+- **Large File Support**: Send multiple large files (1M token limit) without errors
+- **Conversation Memory**: Continue conversations across multiple requests with full context
+- **Model Switching**: Change models mid-conversation seamlessly
+- **Easy Management**: Interactive Docker manager for build/start/logs/shell
+- **No Duplicates**: Single persistent container (no more container proliferation)
 
 ## 💬 Usage Examples
 
 **Chat with different models:**
 ```bash
-# Use Gemini Pro
-openrouter-docker - chat (model: "gemini", prompt: "Explain quantum computing")
+# Use DeepSeek R1 (default)
+openrouter-docker - chat (prompt: "Explain quantum computing")
 
-# Switch to Claude Opus for creative tasks
-openrouter-docker - chat (model: "claude-opus", prompt: "Write a short story")
+# Use Gemini Pro for complex analysis
+openrouter-docker - chat (model: "gemini", prompt: "Analyze this algorithm")
 
 # Continue previous conversation
 openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Tell me more")
@@ -62,8 +103,11 @@ openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Tell m
 
 **Attach files for analysis:**
 ```bash
-# Send code files to any model
-openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py"], prompt: "Review this code")
+# Send multiple code files to any model (supports large files now!)
+openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py", "/path/to/config.json"], prompt: "Review this codebase")
+
+# Analyze documentation
+openrouter-docker - chat (model: "deepseek", files: ["/path/to/README.md"], prompt: "Summarize this project")
 ```
 
 ## 🤖 Available Models
@@ -78,42 +122,65 @@ Just use simple names:
 
 **Check status:**
 ```bash
-docker ps | grep openrouter
+python3 tools/docker_manager.py status
 ```
 
 **View logs:**
 ```bash
+python3 tools/docker_manager.py logs
+```
+
+**Restart container:**
+```bash
+python3 tools/docker_manager.py restart
+```
+
+**Interactive shell:**
+```bash
+python3 tools/docker_manager.py shell
+```
+
+**Manual Docker commands:**
+```bash
+# Check container status
+docker ps | grep openrouter
+
+# View logs directly
 docker logs openrouter
-```
 
-**Restart if needed:**
-```bash
+# Manual restart
 docker restart openrouter
-```
-
-**Remove and reinstall:**
-```bash
-claude mcp remove openrouter-docker
-docker stop openrouter && docker rm openrouter
-# Then run the setup commands again
 ```
 
 ## ⚠️ Troubleshooting
 
 **Container not running?**
 ```bash
-docker restart openrouter
+python3 tools/docker_manager.py restart
 ```
 
 **MCP connection issues?**
 ```bash
 claude mcp remove openrouter-docker
-claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
+./add_mcp.sh
 ```
 
+**Build issues?**
+```bash
+python3 tools/docker_manager.py stop
+python3 tools/docker_manager.py build
+python3 tools/docker_manager.py start
+```
+
+**Large file attachment errors (400 Bad Request)?**
+- This should be fixed with 1M token limit
+- Check logs: `python3 tools/docker_manager.py logs`
+- Verify container is running: `python3 tools/docker_manager.py status`
+
 **Still having issues?**
-- Check your API key in `.env`
-- Make sure Docker is running
+- Check your API key in `.env` file
+- Make sure Docker is running and accessible
+- Run interactive mode: `python3 tools/docker_manager.py`
 - [Open an issue](https://github.com/slyfox1186/claude-code-openrouter/issues)
 
 ## 📄 License
