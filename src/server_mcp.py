@@ -40,11 +40,10 @@ DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
 PREFERRED_MODELS = {
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     "gemini-pro": "google/gemini-2.5-pro",
-    "claude-4-opus": "anthropic/claude-opus-4",
-    "claude-opus-4": "anthropic/claude-opus-4",
-    "claude-4-sonnet": "anthropic/claude-sonnet-4",
-    "claude-sonnet-4": "anthropic/claude-sonnet-4",
-    "deepseek-r1": "deepseek/deepseek-r1-0528"
+    "deepseek-r1": "deepseek/deepseek-r1-0528",
+    "deepseek": "deepseek/deepseek-r1-0528",
+    "qwen3": "qwen/qwen3-235b-a22b-07-25",
+    "qwen": "qwen/qwen3-235b-a22b-07-25"
 }
 
 # Conversation storage
@@ -71,14 +70,11 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["gemini", "google"]):
         return PREFERRED_MODELS["gemini-2.5-pro"]
     
-    if any(word in model_clean for word in ["claude", "anthropic"]):
-        if "opus" in model_clean:
-            return PREFERRED_MODELS["claude-opus-4"]
-        else:
-            return PREFERRED_MODELS["claude-sonnet-4"]
-    
     if any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
+    
+    if any(word in model_clean for word in ["qwen", "qwen3", "235b"]):
+        return PREFERRED_MODELS["qwen3"]
     
     # If no alias found, assume it's already a full model name
     return model_name
@@ -138,7 +134,7 @@ async def list_tools() -> List[Tool]:
                     },
                     "model": {
                         "type": "string",
-                        "description": "Model to use (e.g., 'gemini', 'deepseek'),"
+                        "description": "Model to use (e.g., 'gemini', 'deepseek', 'qwen'),"
                         "default": DEFAULT_MODEL
                     },
                     "continuation_id": {

@@ -41,14 +41,15 @@ PREFERRED_MODELS = {
     "gemini-pro": "google/gemini-2.5-pro",
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
-    "deepseek-r1": "deepseek/deepseek-r1-0528"
+    "qwen3": "qwen/qwen3-235b-a22b-07-25",
+    "qwen": "qwen/qwen3-235b-a22b-07-25"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro"],
     "function_calling": ["google/gemini-2.5-pro"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro", "qwen/qwen3-235b-a22b-07-25"],
 }
 
 def get_config() -> Dict[str, Any]:
@@ -128,9 +129,9 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
     
-    # "deepseek" -> deepseek-r1-0528
-    if any(word in model_clean for word in ["deepseek", "r1"]):
-        return PREFERRED_MODELS["deepseek-r1"]
+    # "qwen" -> qwen3-235b
+    if any(word in model_clean for word in ["qwen", "qwen3", "235b"]):
+        return PREFERRED_MODELS["qwen3"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
     for alias, actual_model in PREFERRED_MODELS.items():

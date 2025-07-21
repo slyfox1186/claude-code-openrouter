@@ -117,6 +117,7 @@ Just use simple names:
 - `gemini` → Google Gemini 2.5 Pro
 - `gpt-4` → OpenAI GPT-4
 - `deepseek` → DeepSeek R1
+- `qwen` → Qwen3 235B
 
 ## 🛠️ Management Commands
 
