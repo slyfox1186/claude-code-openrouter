@@ -70,6 +70,18 @@ python3 tools/docker_manager.py start
 
 **Done!** Now you can use any OpenRouter model in Claude Code with large file support.
 
+### Step 5: Install Claude Code Command (Optional)
+For enhanced multi-model collaboration, copy the command script:
+```bash
+# Create Claude commands directory if it doesn't exist
+mkdir -p ~/.claude/commands
+
+# Copy the multi-model protocol command
+cp examples/call-openrouter.md ~/.claude/commands/
+
+# Now you can use '/call-openrouter' in Claude Code for collaborative workflows
+```
+
 ## 🔑 Get Your API Key
 
 1. Go to [OpenRouter.ai](https://openrouter.ai/)
@@ -86,6 +98,7 @@ python3 tools/docker_manager.py start
 - **Web Search Integration**: Gemini automatically searches the internet for current information
 - **Conversation Memory**: Continue conversations across multiple requests with full context
 - **Model Switching**: Change models mid-conversation seamlessly
+- **Multi-Model Collaboration**: Use `/call-openrouter` command for structured model collaboration workflows
 - **Easy Management**: Interactive Docker manager for build/start/logs/shell
 - **No Duplicates**: Single persistent container (no more container proliferation)
 
@@ -119,6 +132,18 @@ openrouter-docker - chat (model: "qwen", files: ["/path/to/broken_script.py"], p
 
 # Control web search behavior manually when needed
 openrouter-docker - chat (model: "gemini", force_internet_search: false, prompt: "Explain basic programming concepts without external references")
+```
+
+**Multi-Model Collaboration:**
+```bash
+# Use the collaborative workflow command in Claude Code
+/call-openrouter
+
+# This initiates a structured workflow:
+# 1. Gemini Pro 2.5 creates initial proposal
+# 2. DeepSeek R1 refines and improves the plan
+# 3. Qwen3 Coder provides tie-breaking if needed
+# 4. Automatic implementation of the agreed solution
 ```
 
 ## 🤖 Available Models
