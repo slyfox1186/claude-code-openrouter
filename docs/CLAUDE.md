@@ -112,7 +112,7 @@ Required environment variables in `.env`:
 
 The server automatically detects and routes based on model capabilities:
 - **Vision Models**: Handle image inputs (Gemini Pro, GPT-4V)
-- **Large Context**: Support extended conversations (DeepSeek R1, Gemini)
+- **Large Context**: Support extended conversations (DeepSeek R1, Gemini Preview)
 - **Function Calling**: Tool use capabilities (Gemini Pro, GPT-4)
 
 ### Performance Considerations

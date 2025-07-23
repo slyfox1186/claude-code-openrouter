@@ -69,10 +69,11 @@ def handle_tools_list(req_id):
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro), 'deepseek' (for deepseek/deepseek-r1-0528), 'qwen' (for qwen/qwen3-235b-a22b-07-25). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
+                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'qwen' (for qwen/qwen3-coder). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
                     "continuation_id": {"type": "string", "description": "⚠️ REQUIRED for follow-up messages: Conversation ID from previous response - YOU MUST use this to maintain conversation context!"},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Optional files for context (absolute paths)"},
-                    "images": {"type": "array", "items": {"type": "string"}, "description": "Optional images for visual context (absolute paths)"}
+                    "images": {"type": "array", "items": {"type": "string"}, "description": "Optional images for visual context (absolute paths)"},
+                    "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True}
                 },
                 "required": ["prompt"]
             }
@@ -124,6 +125,7 @@ def handle_chat_tool(arguments, req_id):
     continuation_id = arguments.get("continuation_id")
     files = arguments.get("files", [])
     images = arguments.get("images", [])
+    force_internet_search = arguments.get("force_internet_search", True)
     
     if not prompt:
         send_response({
@@ -139,6 +141,14 @@ def handle_chat_tool(arguments, req_id):
     
     # Process files and images to add to prompt
     enhanced_prompt = prompt
+    
+    # Prepare model with internet search if needed
+    from src.config import should_force_internet_search, get_model_alias
+    actual_model = get_model_alias(model_alias)
+    final_model = actual_model
+    if force_internet_search and should_force_internet_search(actual_model):
+        final_model = f"{actual_model}:online"
+        logger.info(f"Enabling web search: {actual_model} -> {final_model}")
     
     if files:
         logger.info(f"Processing {len(files)} files")
@@ -193,8 +203,8 @@ def handle_chat_tool(arguments, req_id):
     try:
         import httpx
         
-        actual_model = get_model_alias(model_alias)
-        logger.info(f"Calling OpenRouter with model: {actual_model}")
+        # Use the final_model (with :online suffix if web search enabled)
+        logger.info(f"Calling OpenRouter with model: {final_model}")
         
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -204,7 +214,7 @@ def handle_chat_tool(arguments, req_id):
         }
         
         data = {
-            "model": actual_model,
+            "model": final_model,
             "messages": messages,
             "temperature": 0.7
         }

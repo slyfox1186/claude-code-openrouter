@@ -114,10 +114,10 @@ openrouter-docker - chat (model: "deepseek", files: ["/path/to/README.md"], prom
 
 Just use simple names:
 
-- `gemini` → Google Gemini 2.5 Pro
+- `gemini` → Google Gemini 2.5 Pro Preview
 - `gpt-4` → OpenAI GPT-4
 - `deepseek` → DeepSeek R1
-- `qwen` → Qwen3 235B
+- `qwen` → Qwen3 Coder
 
 ## 🛠️ Management Commands
 
