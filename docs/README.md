@@ -32,10 +32,11 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 # Default Model Settings
 DEFAULT_MODEL=deepseek/deepseek-r1-0528
 DEFAULT_TEMPERATURE=0.7
-DEFAULT_MAX_TOKENS=1000000
+DEFAULT_MAX_TOKENS=1048576
 
 # Tool Configuration
 ENABLE_WEB_SEARCH=true
+FORCE_INTERNET_SEARCH=true
 
 # Logging Configuration
 LOG_LEVEL=INFO
@@ -80,8 +81,9 @@ python3 tools/docker_manager.py start
 
 ## 🎯 What You Get
 
-- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro, and hundreds more
-- **Large File Support**: Send multiple large files (1M token limit) without errors
+- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro Preview, Qwen3 Coder, and hundreds more
+- **Large File Support**: Send multiple large files (1,048,576 token limit) without errors
+- **Web Search Integration**: Gemini automatically searches the internet for current information
 - **Conversation Memory**: Continue conversations across multiple requests with full context
 - **Model Switching**: Change models mid-conversation seamlessly
 - **Easy Management**: Interactive Docker manager for build/start/logs/shell
@@ -91,33 +93,42 @@ python3 tools/docker_manager.py start
 
 **Chat with different models:**
 ```bash
-# Use DeepSeek R1 (default)
-openrouter-docker - chat (prompt: "Explain quantum computing")
+# Use DeepSeek R1 (default) - great for reasoning and analysis
+openrouter-docker - chat (prompt: "Explain quantum computing concepts")
 
-# Use Gemini Pro for complex analysis
-openrouter-docker - chat (model: "gemini", prompt: "Analyze this algorithm")
+# Use Gemini 2.5 Pro Preview with automatic web search for current info
+openrouter-docker - chat (model: "gemini", prompt: "What are the latest AI developments in 2025?")
 
-# Continue previous conversation
-openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Tell me more")
+# Use Qwen3 Coder for programming tasks and code generation
+openrouter-docker - chat (model: "qwen", prompt: "Write a Python function to sort a dictionary by values")
+
+# Continue previous conversation with context
+openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Can you elaborate on that?")
 ```
 
 **Attach files for analysis:**
 ```bash
-# Send multiple code files to any model (supports large files now!)
-openrouter-docker - chat (model: "gemini", files: ["/path/to/code.py", "/path/to/config.json"], prompt: "Review this codebase")
+# Send multiple large code files to any model (1M+ tokens supported!)
+openrouter-docker - chat (model: "gemini", files: ["/path/to/main.py", "/path/to/config.json"], prompt: "Review this codebase for security vulnerabilities")
 
-# Analyze documentation
-openrouter-docker - chat (model: "deepseek", files: ["/path/to/README.md"], prompt: "Summarize this project")
+# Analyze documentation with web search for current best practices
+openrouter-docker - chat (model: "gemini", files: ["/path/to/README.md"], prompt: "Summarize this project and compare with 2025 industry standards")
+
+# Programming help with Qwen3 Coder
+openrouter-docker - chat (model: "qwen", files: ["/path/to/broken_script.py"], prompt: "Debug this code and suggest improvements")
+
+# Control web search behavior manually when needed
+openrouter-docker - chat (model: "gemini", force_internet_search: false, prompt: "Explain basic programming concepts without external references")
 ```
 
 ## 🤖 Available Models
 
 Just use simple names:
 
-- `gemini` → Google Gemini 2.5 Pro Preview
-- `gpt-4` → OpenAI GPT-4
-- `deepseek` → DeepSeek R1
-- `qwen` → Qwen3 Coder
+- `gemini` → Google Gemini 2.5 Pro Preview (with web search)
+- `deepseek` → DeepSeek R1 (reasoning & analysis)
+- `qwen` → Qwen3 Coder (programming tasks)
+- Plus 400+ other models available by full name
 
 ## 🛠️ Management Commands
 
@@ -174,7 +185,7 @@ python3 tools/docker_manager.py start
 ```
 
 **Large file attachment errors (400 Bad Request)?**
-- This should be fixed with 1M token limit
+- Fixed with 1,048,576 token limit (1M+ tokens supported)
 - Check logs: `python3 tools/docker_manager.py logs`
 - Verify container is running: `python3 tools/docker_manager.py status`
 
