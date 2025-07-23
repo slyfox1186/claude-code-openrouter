@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Install dependencies**: `pip install -r requirements.txt`
 - **Run server directly**: `python server.py`
-- **Build Docker image**: `./build.sh` or `python docker_manager.py build`
-- **Start Docker container**: `./run.sh` or `python docker_manager.py start`
-- **View logs**: `python docker_manager.py logs`
-- **Interactive Docker shell**: `python docker_manager.py shell`
+- **Build Docker image**: `python tools/docker_manager.py build`
+- **Start Docker container**: `python tools/docker_manager.py start`
+- **View logs**: `python tools/docker_manager.py logs`
+- **Interactive Docker shell**: `python tools/docker_manager.py shell`
 
 ## Project Architecture
 
@@ -89,23 +89,24 @@ Required environment variables in `.env`:
 ### File Structure
 
 ```
-├── server.py              # Main MCP server implementation
-├── config.py              # Configuration and model management
-├── conversation_manager.py # Conversation persistence
-├── docker_manager.py      # Docker operations and management
-├── requirements.txt       # Python dependencies
-├── Dockerfile             # Container definition
-├── docker-compose.yml     # Service orchestration
-├── build.sh               # Build script
-└── run.sh                 # Runtime script
+├── src/
+│   ├── server.py              # Main MCP server implementation
+│   ├── config.py              # Configuration and model management
+│   └── conversation_manager.py # Conversation persistence
+├── tools/
+│   └── docker_manager.py      # Docker operations and management
+├── requirements.txt           # Python dependencies
+├── Dockerfile                 # Container definition
+├── docker-compose.yml         # Service orchestration
+└── add_mcp.sh                 # MCP connection script
 ```
 
 ### Development Workflow
 
 1. **Setup**: Create `.env` with `OPENROUTER_API_KEY`
-2. **Development**: Run `python server.py` for direct testing
-3. **Containerization**: Use `./build.sh` and `./run.sh` for Docker deployment
-4. **Debugging**: Monitor logs via `python docker_manager.py logs`
+2. **Development**: Run `python src/server.py` for direct testing
+3. **Containerization**: Use `python tools/docker_manager.py build` and `python tools/docker_manager.py start` for Docker deployment
+4. **Debugging**: Monitor logs via `python tools/docker_manager.py logs`
 5. **Testing**: Use MCP clients to interact with the server
 
 ### Model Capabilities
