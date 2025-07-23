@@ -19,10 +19,11 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/ap
 # Default model settings
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
-DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "1000000"))
+DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "1048576"))
 
 # Tool configuration
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
+FORCE_INTERNET_SEARCH = os.getenv("FORCE_INTERNET_SEARCH", "true").lower() == "true"
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -37,19 +38,20 @@ MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
 
 # OpenRouter-specific model configurations
 PREFERRED_MODELS = {
-    "gemini-2.5-pro": "google/gemini-2.5-pro",
-    "gemini-pro": "google/gemini-2.5-pro",
+    "gemini-2.5-pro": "google/gemini-2.5-pro-preview",
+    "gemini-pro": "google/gemini-2.5-pro-preview",
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
-    "qwen3": "qwen/qwen3-235b-a22b-07-25",
-    "qwen": "qwen/qwen3-235b-a22b-07-25"
+    "qwen3": "qwen/qwen3-coder",
+    "qwen": "qwen/qwen3-coder"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
-    "vision": ["google/gemini-2.5-pro"],
-    "function_calling": ["google/gemini-2.5-pro"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro", "qwen/qwen3-235b-a22b-07-25"],
+    "vision": ["google/gemini-2.5-pro-preview"],
+    "function_calling": ["google/gemini-2.5-pro-preview"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "qwen/qwen3-coder"],
+    "internet_access": ["google/gemini-2.5-pro-preview"],
 }
 
 def get_config() -> Dict[str, Any]:
@@ -68,6 +70,7 @@ def get_config() -> Dict[str, Any]:
         },
         "tools": {
             "web_search": ENABLE_WEB_SEARCH,
+            "force_internet_search": FORCE_INTERNET_SEARCH,
         },
         "logging": {
             "level": LOG_LEVEL,
@@ -121,7 +124,7 @@ def get_model_alias(model_name: str) -> str:
             return actual_model
     
     # Fuzzy matching for natural language requests
-    # "gemini" or "google" -> gemini-2.5-pro
+    # "gemini" or "google" -> gemini-2.5-pro-preview
     if any(word in model_clean for word in ["gemini", "google"]):
         return PREFERRED_MODELS["gemini-2.5-pro"]
     
@@ -129,8 +132,8 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
     
-    # "qwen" -> qwen3-235b
-    if any(word in model_clean for word in ["qwen", "qwen3", "235b"]):
+    # "qwen" -> qwen3-coder
+    if any(word in model_clean for word in ["qwen", "qwen3", "coder"]):
         return PREFERRED_MODELS["qwen3"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
@@ -163,3 +166,9 @@ def has_capability(model_name: str, capability: str) -> bool:
     """Check if a model has a specific capability"""
     actual_model = get_model_alias(model_name)
     return actual_model in MODEL_CAPABILITIES.get(capability, [])
+
+def should_force_internet_search(model_name: str) -> bool:
+    """Check if we should force internet search for this model"""
+    if not FORCE_INTERNET_SEARCH:
+        return False
+    return has_capability(model_name, "internet_access")

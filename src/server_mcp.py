@@ -38,12 +38,12 @@ DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
 
 # Model aliases
 PREFERRED_MODELS = {
-    "gemini-2.5-pro": "google/gemini-2.5-pro",
-    "gemini-pro": "google/gemini-2.5-pro",
+    "gemini-2.5-pro": "google/gemini-2.5-pro-preview",
+    "gemini-pro": "google/gemini-2.5-pro-preview", 
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
-    "qwen3": "qwen/qwen3-235b-a22b-07-25",
-    "qwen": "qwen/qwen3-235b-a22b-07-25"
+    "qwen3": "qwen/qwen3-coder",
+    "qwen": "qwen/qwen3-coder"
 }
 
 # Conversation storage
@@ -73,7 +73,7 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
     
-    if any(word in model_clean for word in ["qwen", "qwen3", "235b"]):
+    if any(word in model_clean for word in ["qwen", "qwen3", "coder"]):
         return PREFERRED_MODELS["qwen3"]
     
     # If no alias found, assume it's already a full model name
@@ -82,7 +82,7 @@ def get_model_alias(model_name: str) -> str:
 async def call_openrouter_api(
     messages: List[Dict[str, Any]], 
     model: str = DEFAULT_MODEL,
-    max_tokens: int = 1000000,
+    max_tokens: int = 1048576,
     temperature: float = 0.7
 ) -> Dict[str, Any]:
     """Call OpenRouter API with messages"""
@@ -145,12 +145,17 @@ async def list_tools() -> List[Tool]:
                     "max_tokens": {
                         "type": "integer",
                         "description": "Maximum tokens in response",
-                        "default": 1000000
+                        "default": 1048576
                     },
                     "temperature": {
                         "type": "number",
                         "description": "Response randomness (0-1)",
                         "default": 0.7
+                    },
+                    "force_internet_search": {
+                        "type": "boolean",
+                        "description": "Force internet-enabled models to search the web",
+                        "default": True
                     }
                 },
                 "required": ["prompt"]
@@ -223,8 +228,9 @@ async def handle_chat(arguments: Dict[str, Any]) -> CallToolResult:
     prompt = arguments.get("prompt")
     model = arguments.get("model", DEFAULT_MODEL)
     continuation_id = arguments.get("continuation_id")
-    max_tokens = arguments.get("max_tokens", 1000000)
+    max_tokens = arguments.get("max_tokens", 1048576)
     temperature = arguments.get("temperature", 0.7)
+    force_internet_search = arguments.get("force_internet_search", True)
     
     if not prompt:
         return CallToolResult(
@@ -240,6 +246,15 @@ async def handle_chat(arguments: Dict[str, Any]) -> CallToolResult:
         continuation_id = f"conv_{len(conversations) + 1}"
         conversations[continuation_id] = messages
     
+    # Prepare model with internet search if needed
+    actual_model = get_model_alias(model)
+    final_model = actual_model
+    
+    # Check if model has internet access and force_internet_search is enabled
+    internet_models = ["google/gemini-2.5-pro-preview"]  # Models with internet access
+    if force_internet_search and actual_model in internet_models:
+        final_model = f"{actual_model}:online"
+    
     # Add user message
     messages.append({"role": "user", "content": prompt})
     
@@ -247,7 +262,7 @@ async def handle_chat(arguments: Dict[str, Any]) -> CallToolResult:
         # Call OpenRouter API
         response = await call_openrouter_api(
             messages=messages,
-            model=model,
+            model=final_model,
             max_tokens=max_tokens,
             temperature=temperature
         )
