@@ -23,7 +23,6 @@ cd claude-code-openrouter
 ### Step 2: Configure API Key
 Create a `.env` file with your OpenRouter API key:
 ```bash
-# Create .env file
 cat > .env << EOF
 # OpenRouter API Configuration
 OPENROUTER_API_KEY=sk-or-v1-your_actual_api_key_here
