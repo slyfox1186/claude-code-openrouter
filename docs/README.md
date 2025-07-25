@@ -92,7 +92,7 @@ cp examples/call-openrouter.md ~/.claude/commands/
 
 ## 🎯 What You Get
 
-- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro Preview, Qwen3 Coder, and hundreds more
+- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro Preview, Qwen3 Coder, Kimi K2, Grok 4, and hundreds more
 - **Large File Support**: Send multiple large files (1,048,576 token limit) without errors
 - **Web Search Integration**: Gemini automatically searches the internet for current information
 - **Conversation Memory**: Continue conversations across multiple requests with full context
@@ -113,6 +113,12 @@ openrouter-docker - chat (model: "gemini", prompt: "What are the latest AI devel
 
 # Use Qwen3 Coder for programming tasks and code generation
 openrouter-docker - chat (model: "qwen", prompt: "Write a Python function to sort a dictionary by values")
+
+# Use Kimi K2 by Moonshot AI for advanced reasoning
+openrouter-docker - chat (model: "kimi", prompt: "Analyze this complex system architecture")
+
+# Use Grok 4 by X.AI for creative and analytical tasks
+openrouter-docker - chat (model: "grok", prompt: "Help me brainstorm innovative solutions")
 
 # Continue previous conversation with context
 openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Can you elaborate on that?")
@@ -152,6 +158,8 @@ Just use simple names:
 - `gemini` → Google Gemini 2.5 Pro Preview (with web search)
 - `deepseek` → DeepSeek R1 (reasoning & analysis)
 - `qwen` → Qwen3 Coder (programming tasks)
+- `kimi` → Moonshot Kimi K2 (advanced reasoning)
+- `grok` → X.AI Grok 4 (creative & analytical)
 - Plus 400+ other models available by full name
 
 ## 🛠️ Management Commands
