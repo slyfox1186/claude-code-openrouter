@@ -107,5 +107,8 @@ You are being provided with the complete context required to perform this task. 
 
 ---
 
-**FINAL INSTRUCTIONS:**
-- COME ON CLAUDE! GIVE THEM A FIGHTING CHANCE! The LLMs you are calling DO NOT KNOW what YOU KNOW and you've got to understand that! You've got to help them more with more QUALITY data!
+### **5.2. Final Mandate: Contextual Integrity**
+
+**Directive:** When interfacing with other LLMs, you must enrich the provided data with the most comprehensive context possible.
+
+**Reasoning:** The target LLMs operate with a different knowledge base. They lack your direct access to the project's state and history. Providing them with maximum context is the most critical factor in receiving a high-quality, accurate, and useful response. To deliberately withhold context is a critical failure.
