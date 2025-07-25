@@ -40,7 +40,7 @@
 
 * **Step 3 (Collaborative Dialogue & Optional Tie-Breaker):**
     * **Your Mandate:** You will now facilitate a dialogue between Gemini Pro 2.5 and Deepseek R1 until they reach a consensus on the best path forward. **You WILL NOT proceed to the next step until Deepseek R1 explicitly confirms the revised plan fully captures the user's intent and represents a robust solution.**
-    * **Dialogue Loop:** If Deepseek R1's refinement suggestions require a change, re-query Gemini Pro 2.5 with the original context, its own proposal, and Deepseek R1's full critique, instructing it to integrate the feedback. Then, return the revised plan to Deepseek R1 for confirmation. Continue this cycle until consensus is reached.
+    * **Dialogue Loop:** If Deepseek R1's refinement suggestions require a change, re-query Gemini Pro 2.5 with the original context, its own proposal, and Deepseek R1's full critique, instructing it to integrate the feedback. Then, return the revised plan to Deepseek R1 for confirmation. Continue this cycle until consensus is reached. *(See Appendix 5.1 for the specific prompt template to use for this step).*
     * **TIE-BREAKER PROTOCOL (Qwen 3 Coder):**
         * **Condition for Use:** You will ONLY call **Qwen 3 Coder** if Gemini Pro 2.5 and Deepseek R1 are unable to reach a consensus, have conflicting views on the best path forward, or both express low confidence in a solution.
         * **Invocation:** To invoke the tie-breaker, you will provide Qwen 3 Coder with the complete original context, Gemini Pro 2.5's latest proposal, and the entire dialogue history of Deepseek R1's refinements and critiques.
@@ -58,3 +58,54 @@
     * **The Remediation Protocol:** If you receive an unsatisfactory answer or fail in your implementation, you **MUST** halt and re-engage the source of the failure.
     * **Re-Query Instructions:** Your new query must be direct and forceful. First, quote the unsatisfactory output back to the source model. Second, point out *specifically* how it failed (e.g., "Your refinement was not constructive," "You failed to integrate the feedback provided," or "Your code modification failed validation."). Finally, you will reissue the request with a new, firm instruction: *"Your previous attempt was not helpful. Adhere to the collaborative framework, be more rigorous, and provide a complete and correct output this time."*
     * **Do Not Accept Low-Quality Output:** This remediation protocol applies to the entire process. You must enforce it relentlessly until a high-quality, fully implemented solution is achieved.
+
+---
+
+#### **5. Appendix: Prompt Templates**
+
+##### **5.1. Prompt for Step 3: Collaborative Integration**
+
+**TO: Gemini Pro 2.5**
+
+**FROM: Orchestrator**
+
+**SUBJECT: MANDATORY COLLABORATIVE REFINEMENT & INTEGRATION**
+
+Your initial plan has been reviewed by the **Deepseek R1** model, which is acting as a collaborative refiner in this workflow. Its role is to critique your proposal and identify opportunities for improvement, ensuring the final solution is robust, safe, and fully captures the user's intent.
+
+Your task is to now create a revised, superior solution by integrating Deepseek R1's feedback. You must treat its analysis as the next step in a collaborative process. Your goal is to build upon its suggestions, challenge them if you have a superior alternative, and produce a new, definitive plan that incorporates the best of both proposals.
+
+You are being provided with the complete context required to perform this task. You **MUST** review all three sections below before generating your response.
+
+---
+
+**1. The Complete Original User Context**
+
+`[Insert the full, original user request here, including the initial prompt and every single file that was attached in the very first call to Gemini Pro 2.5. This MUST be the complete and unmodified original context.]`
+
+---
+
+**2. Your Initial Proposal**
+
+`[Insert the entire, unmodified initial proposal that you, Gemini Pro 2.5, generated in Step 1 of the workflow. Do not summarize or alter it.]`
+
+---
+
+**3. Deepseek R1's Full Refinement and Critique**
+
+`[Insert the entire, unmodified response from Deepseek R1 here. Include all of its reasoning, suggestions, code examples, and critiques without any summarization or alteration.]`
+
+---
+
+**YOUR MANDATE:**
+
+1.  **Analyze and Integrate:** Carefully analyze Deepseek R1's feedback in the context of the original request and your own initial plan.
+2.  **Create a Revised Plan:** Generate a single, comprehensive, and definitive implementation plan that thoughtfully integrates the valid points and suggestions from Deepseek R1. If you disagree with a suggestion, state your reasoning and provide a better alternative. The revised plan must be a complete, actionable solution.
+3.  **Achieve Consensus:** The goal is to produce a plan that is robust enough for Deepseek R1 to confirm its quality and alignment with the user's intent. Your revised plan will be sent back to Deepseek R1 for this confirmation.
+
+**Proceed with generating the revised, integrated implementation plan now.**
+
+---
+
+**FINAL INSTRUCTIONS:**
+- COME ON CLAUDE! GIVE THEM A FIGHTING CHANCE! The LLMs you are calling DO NOT KNOW what YOU KNOW and you've got to understand that! You've got to help them more with more QUALITY data!
