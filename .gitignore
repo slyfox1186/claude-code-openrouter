@@ -85,3 +85,11 @@ openrouter_mcp.log
 
 # Docker
 .dockerignore
+
+# CLAUDE.md files (user/project-specific instructions)
+CLAUDE.md
+*/CLAUDE.md
+**/CLAUDE.md
+
+# Claude configuration directory
+.claude/

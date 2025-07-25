@@ -43,14 +43,18 @@ PREFERRED_MODELS = {
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
     "qwen3": "qwen/qwen3-coder",
-    "qwen": "qwen/qwen3-coder"
+    "qwen": "qwen/qwen3-coder",
+    "kimi-k2": "moonshotai/kimi-k2",
+    "kimi": "moonshotai/kimi-k2",
+    "grok-4": "x-ai/grok-4",
+    "grok": "x-ai/grok-4"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro-preview"],
     "function_calling": ["google/gemini-2.5-pro-preview"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "qwen/qwen3-coder"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "qwen/qwen3-coder", "moonshotai/kimi-k2", "x-ai/grok-4"],
     "internet_access": ["google/gemini-2.5-pro-preview"],
 }
 
@@ -135,6 +139,14 @@ def get_model_alias(model_name: str) -> str:
     # "qwen" -> qwen3-coder
     if any(word in model_clean for word in ["qwen", "qwen3", "coder"]):
         return PREFERRED_MODELS["qwen3"]
+    
+    # "kimi" or "moonshot" -> moonshotai/kimi-k2
+    if any(word in model_clean for word in ["kimi", "moonshot", "k2"]):
+        return PREFERRED_MODELS["kimi-k2"]
+    
+    # "grok" or "x-ai" -> x-ai/grok-4
+    if any(word in model_clean for word in ["grok", "x-ai", "xai"]):
+        return PREFERRED_MODELS["grok-4"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
     for alias, actual_model in PREFERRED_MODELS.items():
