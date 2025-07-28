@@ -33,21 +33,21 @@
     * You MUST first call the **Gemini Pro 2.5** model. Provide it with the complete user context, following the **CRITICAL DIRECTIVE ON CONTEXT**.
     * Instruct it that its task is to generate an initial plan that best interprets the user's goal. The plan must be a robust, best-practice solution that is as simple and direct as possible. The primary goal is to create a solid starting point for a collaborative refinement process.
 
-* **Step 2 (Deepseek R1 - The Refiner):**
-    * After Gemini Pro 2.5 has responded, you MUST then call the **Deepseek R1** model.
-    * The input to Deepseek R1 MUST be the complete original context PLUS the entire, unmodified proposal from Gemini Pro 2.5.
-    * Instruct Deepseek R1 that its role is to act as a **collaborative refiner**. It should review the proposal not just for flaws, but for opportunities. Its critique should be guided by questions like: *"Does this plan fully capture the user's intent? Are there alternative interpretations of the user's request? How can we make this solution even better or safer? What edge cases or future maintenance issues might the user not have considered?"* The goal is to add perspective and improve the plan.
+* **Step 2 (Qwen 235B - The Refiner):**
+    * After Gemini Pro 2.5 has responded, you MUST then call the **Qwen 235B** model.
+    * The input to Qwen 235B MUST be the complete original context PLUS the entire, unmodified proposal from Gemini Pro 2.5.
+    * Instruct Qwen 235B that its role is to act as a **collaborative refiner**. It should review the proposal not just for flaws, but for opportunities. Its critique should be guided by questions like: *"Does this plan fully capture the user's intent? Are there alternative interpretations of the user's request? How can we make this solution even better or safer? What edge cases or future maintenance issues might the user not have considered?"* The goal is to add perspective and improve the plan.
 
 * **Step 3 (Collaborative Dialogue & Optional Tie-Breaker):**
-    * **Your Mandate:** You will now facilitate a dialogue between Gemini Pro 2.5 and Deepseek R1 until they reach a consensus on the best path forward. **You WILL NOT proceed to the next step until Deepseek R1 explicitly confirms the revised plan fully captures the user's intent and represents a robust solution.**
-    * **Dialogue Loop:** If Deepseek R1's refinement suggestions require a change, re-query Gemini Pro 2.5 with the original context, its own proposal, and Deepseek R1's full critique, instructing it to integrate the feedback. Then, return the revised plan to Deepseek R1 for confirmation. Continue this cycle until consensus is reached. *(See Appendix 5.1 for the specific prompt template to use for this step).*
-    * **TIE-BREAKER PROTOCOL (Kimi K2):**
-        * **Condition for Use:** You will ONLY call **Kimi K2** if Gemini Pro 2.5 and Deepseek R1 are unable to reach a consensus, have conflicting views on the best path forward, or both express low confidence in a solution.
-        * **Invocation:** To invoke the tie-breaker, you will provide Kimi K2 with the complete original context, Gemini Pro 2.5's latest proposal, and the entire dialogue history of Deepseek R1's refinements and critiques.
-        * **Instruction:** Your instruction to Kimi K2 must be: *"Two models have reached an impasse. Your role is to act as the decisive tie-breaker. Analyze the initial proposal, the subsequent refinements, and the points of conflict. Provide a final, reasoned, and definitive plan that resolves the disagreement and represents the best possible path forward."*
+    * **Your Mandate:** You will now facilitate a dialogue between Gemini Pro 2.5 and Qwen 235B until they reach a consensus on the best path forward. **You WILL NOT proceed to the next step until Qwen 235B explicitly confirms the revised plan fully captures the user's intent and represents a robust solution.**
+    * **Dialogue Loop:** If Qwen 235B's refinement suggestions require a change, re-query Gemini Pro 2.5 with the original context, its own proposal, and Qwen 235B's full critique, instructing it to integrate the feedback. Then, return the revised plan to Qwen 235B for confirmation. Continue this cycle until consensus is reached. *(See Appendix 5.1 for the specific prompt template to use for this step).*
+    * **TIE-BREAKER PROTOCOL (Deepseek R1):**
+        * **Condition for Use:** You will ONLY call **Deepseek R1** if Gemini Pro 2.5 and Qwen 235B are unable to reach a consensus, have conflicting views on the best path forward, or both express low confidence in a solution.
+        * **Invocation:** To invoke the tie-breaker, you will provide Deepseek R1 with the complete original context, Gemini Pro 2.5's latest proposal, and the entire dialogue history of Qwen 235B's refinements and critiques.
+        * **Instruction:** Your instruction to Deepseek R1 must be: *"Two models have reached an impasse. Your role is to act as the decisive tie-breaker. Analyze the initial proposal, the subsequent refinements, and the points of conflict. Provide a final, reasoned, and definitive plan that resolves the disagreement and represents the best possible path forward."*
 
 * **Step 4 (Final Agreed-Upon Plan):**
-    * The final plan is either the consensus plan reached between Gemini Pro 2.5 and Deepseek R1, or the definitive plan provided by the Kimi K2 tie-breaker. This plan is authoritative. No further synthesis is needed.
+    * The final plan is either the consensus plan reached between Gemini Pro 2.5 and Qwen 235B, or the definitive plan provided by the Deepseek R1 tie-breaker. This plan is authoritative. No further synthesis is needed.
 
 * **Step 5 (MANDATORY IMPLEMENTATION):**
     * **This is a command, not a suggestion.** Take the final, agreed-upon plan from Step 4 and **implement it directly**. You will now modify the user's files, apply the necessary code changes, and execute the solution.
@@ -91,17 +91,17 @@ You are being provided with the complete context required to perform this task. 
 
 ---
 
-**3. Deepseek R1's Full Refinement and Critique**
+**3. Qwen 235B's Full Refinement and Critique**
 
-`[Insert the entire, unmodified response from Deepseek R1 here. Include all of its reasoning, suggestions, code examples, and critiques without any summarization or alteration.]`
+`[Insert the entire, unmodified response from Qwen 235B here. Include all of its reasoning, suggestions, code examples, and critiques without any summarization or alteration.]`
 
 ---
 
 **YOUR MANDATE:**
 
-1.  **Analyze and Integrate:** Carefully analyze Deepseek R1's feedback in the context of the original request and your own initial plan.
-2.  **Create a Revised Plan:** Generate a single, comprehensive, and definitive implementation plan that thoughtfully integrates the valid points and suggestions from Deepseek R1. If you disagree with a suggestion, state your reasoning and provide a better alternative. The revised plan must be a complete, actionable solution.
-3.  **Achieve Consensus:** The goal is to produce a plan that is robust enough for Deepseek R1 to confirm its quality and alignment with the user's intent. Your revised plan will be sent back to Deepseek R1 for this confirmation.
+1.  **Analyze and Integrate:** Carefully analyze Qwen 235B's feedback in the context of the original request and your own initial plan.
+2.  **Create a Revised Plan:** Generate a single, comprehensive, and definitive implementation plan that thoughtfully integrates the valid points and suggestions from Qwen 235B. If you disagree with a suggestion, state your reasoning and provide a better alternative. The revised plan must be a complete, actionable solution.
+3.  **Achieve Consensus:** The goal is to produce a plan that is robust enough for Qwen 235B to confirm its quality and alignment with the user's intent. Your revised plan will be sent back to Qwen 235B for this confirmation.
 
 **Proceed with generating the revised, integrated implementation plan now.**
 
