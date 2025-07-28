@@ -41,13 +41,13 @@
 * **Step 3 (Collaborative Dialogue & Optional Tie-Breaker):**
     * **Your Mandate:** You will now facilitate a dialogue between Gemini Pro 2.5 and Deepseek R1 until they reach a consensus on the best path forward. **You WILL NOT proceed to the next step until Deepseek R1 explicitly confirms the revised plan fully captures the user's intent and represents a robust solution.**
     * **Dialogue Loop:** If Deepseek R1's refinement suggestions require a change, re-query Gemini Pro 2.5 with the original context, its own proposal, and Deepseek R1's full critique, instructing it to integrate the feedback. Then, return the revised plan to Deepseek R1 for confirmation. Continue this cycle until consensus is reached. *(See Appendix 5.1 for the specific prompt template to use for this step).*
-    * **TIE-BREAKER PROTOCOL (Qwen 3 Coder):**
-        * **Condition for Use:** You will ONLY call **Qwen 3 Coder** if Gemini Pro 2.5 and Deepseek R1 are unable to reach a consensus, have conflicting views on the best path forward, or both express low confidence in a solution.
-        * **Invocation:** To invoke the tie-breaker, you will provide Qwen 3 Coder with the complete original context, Gemini Pro 2.5's latest proposal, and the entire dialogue history of Deepseek R1's refinements and critiques.
-        * **Instruction:** Your instruction to Qwen 3 Coder must be: *"Two models have reached an impasse. Your role is to act as the decisive tie-breaker. Analyze the initial proposal, the subsequent refinements, and the points of conflict. Provide a final, reasoned, and definitive plan that resolves the disagreement and represents the best possible path forward."*
+    * **TIE-BREAKER PROTOCOL (Kimi K2):**
+        * **Condition for Use:** You will ONLY call **Kimi K2** if Gemini Pro 2.5 and Deepseek R1 are unable to reach a consensus, have conflicting views on the best path forward, or both express low confidence in a solution.
+        * **Invocation:** To invoke the tie-breaker, you will provide Kimi K2 with the complete original context, Gemini Pro 2.5's latest proposal, and the entire dialogue history of Deepseek R1's refinements and critiques.
+        * **Instruction:** Your instruction to Kimi K2 must be: *"Two models have reached an impasse. Your role is to act as the decisive tie-breaker. Analyze the initial proposal, the subsequent refinements, and the points of conflict. Provide a final, reasoned, and definitive plan that resolves the disagreement and represents the best possible path forward."*
 
 * **Step 4 (Final Agreed-Upon Plan):**
-    * The final plan is either the consensus plan reached between Gemini Pro 2.5 and Deepseek R1, or the definitive plan provided by the Qwen 3 Coder tie-breaker. This plan is authoritative. No further synthesis is needed.
+    * The final plan is either the consensus plan reached between Gemini Pro 2.5 and Deepseek R1, or the definitive plan provided by the Kimi K2 tie-breaker. This plan is authoritative. No further synthesis is needed.
 
 * **Step 5 (MANDATORY IMPLEMENTATION):**
     * **This is a command, not a suggestion.** Take the final, agreed-upon plan from Step 4 and **implement it directly**. You will now modify the user's files, apply the necessary code changes, and execute the solution.
