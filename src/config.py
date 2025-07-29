@@ -17,9 +17,9 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 # Default model settings
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek/deepseek-r1-0528")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "z-ai/glm-4.5")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
-DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "1048576"))
+DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "8192"))
 
 # Tool configuration
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
@@ -48,14 +48,16 @@ PREFERRED_MODELS = {
     "grok": "x-ai/grok-4",
     "qwen3-235b": "qwen/qwen3-235b-a22b-2507",
     "qwen3-coder": "qwen/qwen3-coder",
-    "qwen": "qwen/qwen3-235b-a22b-2507"
+    "qwen": "qwen/qwen3-235b-a22b-2507",
+    "glm-4.5": "z-ai/glm-4.5",
+    "glm": "z-ai/glm-4.5"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro-preview"],
     "function_calling": ["google/gemini-2.5-pro-preview"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder", "z-ai/glm-4.5"],
     "internet_access": ["google/gemini-2.5-pro-preview"],
 }
 
@@ -150,6 +152,10 @@ def get_model_alias(model_name: str) -> str:
         return PREFERRED_MODELS["qwen3-coder"]
     if any(word in model_clean for word in ["qwen", "qwen3"]):
         return PREFERRED_MODELS["qwen"]
+    
+    # "glm" or "z-ai" -> z-ai/glm-4.5
+    if any(word in model_clean for word in ["glm", "glm-4.5", "glm4.5", "glm45", "z-ai"]):
+        return PREFERRED_MODELS["glm"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
     for alias, actual_model in PREFERRED_MODELS.items():

@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 # Set up paths for both direct execution and module import
 try:
     from .conversation_manager import ConversationManager
-    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY
+    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS
 except ImportError:
     from conversation_manager import ConversationManager
-    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY
+    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS
 
 # Simple logging setup
 logging.basicConfig(
@@ -64,15 +64,15 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY: You MUST ALWAYS use the continuation_id from previous responses in ALL follow-up messages - this is MANDATORY for maintaining conversation context and memory! Never start a new conversation when continuing an existing one! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images!",
+            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter!",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
-                    "continuation_id": {"type": "string", "description": "⚠️ MANDATORY FOR ALL FOLLOW-UPS: Conversation ID from previous response - YOU MUST ALWAYS include this when continuing any conversation! Failure to include this breaks conversation memory and context! This is NOT optional for follow-up messages!"},
-                    "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths) - ALWAYS include all relevant files to maximize context window utilization"},
-                    "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Gemini has powerful vision capabilities - use them!"},
+                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'glm' (for z-ai/glm-4.5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
+                    "continuation_id": {"type": "string", "description": "⚠️ ABSOLUTELY MANDATORY FOR ALL FOLLOW-UPS: The EXACT UUID from 'Conversation ID: [uuid]' shown in previous responses - YOU MUST COPY AND PASTE THIS EXACT STRING! Example: if you see 'Conversation ID: 1b1d27c2-7abb-4f80-920e-34cec9909d60' then use continuation_id: '1b1d27c2-7abb-4f80-920e-34cec9909d60'. NEVER omit this! NEVER create new conversations when you have an existing ID! This maintains conversation memory and context - ignoring this BREAKS the entire conversation flow and wastes all previous context!"},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths) - ALWAYS include all relevant files to maximize context window utilization. Look for files with extensions like .js, .ts, .tsx, .py, .md, .json, .css, etc."},
+                    "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ ABSOLUTELY CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Look for files ending in .png, .jpg, .jpeg, .gif, .svg, .webp and ALWAYS include them! Gemini has powerful vision capabilities - use them or you're wasting a key feature!"},
                     "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True}
                 },
                 "required": ["prompt"]
@@ -126,6 +126,7 @@ def handle_chat_tool(arguments, req_id):
     files = arguments.get("files", [])
     images = arguments.get("images", [])
     force_internet_search = arguments.get("force_internet_search", True)
+    
     
     if not prompt:
         send_response({
@@ -213,10 +214,26 @@ def handle_chat_tool(arguments, req_id):
             "X-Title": "OpenRouter MCP Server"
         }
         
+        # Set appropriate max_tokens based on model (leaving buffer for input)
+        model_max_tokens = {
+            "qwen/qwen3-235b-a22b-2507": 200000,
+            "qwen/qwen3-coder": 200000,
+            "deepseek/deepseek-r1-0528": 120000,
+            "google/gemini-2.5-pro-preview": 400000,
+            "moonshotai/kimi-k2": 131072,
+            "x-ai/grok-4": 24000,
+            "z-ai/glm-4.5": 131072
+        }
+        
+        # Remove :online suffix for model lookup
+        clean_model = final_model.replace(":online", "")
+        max_tokens = model_max_tokens.get(clean_model, DEFAULT_MAX_TOKENS)
+        
         data = {
             "model": final_model,
             "messages": messages,
-            "temperature": 0.7
+            "temperature": 0.7,
+            "max_tokens": max_tokens
         }
         
         with httpx.Client(timeout=60.0) as client:
@@ -246,6 +263,21 @@ def handle_chat_tool(arguments, req_id):
             }
         })
         
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error in chat request: {e}")
+        logger.error(f"Response status: {e.response.status_code}")
+        logger.error(f"Response text: {e.response.text}")
+        error_detail = e.response.text
+        try:
+            error_json = e.response.json()
+            error_detail = error_json.get('error', {}).get('message', error_detail)
+        except:
+            pass
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)} - Details: {error_detail}"}
+        })
     except Exception as e:
         logger.error(f"Error calling OpenRouter: {e}")
         send_response({

@@ -29,7 +29,7 @@ OPENROUTER_API_KEY=sk-or-v1-your_actual_api_key_here
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 # Default Model Settings
-DEFAULT_MODEL=deepseek/deepseek-r1-0528
+DEFAULT_MODEL=z-ai/glm-4.5
 DEFAULT_TEMPERATURE=0.7
 DEFAULT_MAX_TOKENS=1048576
 
