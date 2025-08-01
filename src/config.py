@@ -48,6 +48,8 @@ PREFERRED_MODELS = {
     "grok": "x-ai/grok-4",
     "qwen3-235b": "qwen/qwen3-235b-a22b-2507",
     "qwen3-coder": "qwen/qwen3-coder",
+    "qwen3-thinking": "qwen/qwen3-235b-a22b-thinking-2507",
+    "qwen-thinking": "qwen/qwen3-235b-a22b-thinking-2507",
     "qwen": "qwen/qwen3-235b-a22b-2507",
     "glm-4.5": "z-ai/glm-4.5",
     "glm": "z-ai/glm-4.5"
@@ -57,7 +59,7 @@ PREFERRED_MODELS = {
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro-preview"],
     "function_calling": ["google/gemini-2.5-pro-preview"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder", "z-ai/glm-4.5"],
+    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder", "qwen/qwen3-235b-a22b-thinking-2507", "z-ai/glm-4.5"],
     "internet_access": ["google/gemini-2.5-pro-preview"],
 }
 
@@ -147,9 +149,11 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["grok", "x-ai", "xai"]):
         return PREFERRED_MODELS["grok-4"]
     
-    # "qwen" -> qwen3-235b (default) or qwen3-coder (specific)
+    # "qwen" -> qwen3-235b (default) or qwen3-coder (specific) or qwen3-thinking
     if any(word in model_clean for word in ["qwen3-coder", "coder"]):
         return PREFERRED_MODELS["qwen3-coder"]
+    if any(word in model_clean for word in ["qwen-thinking", "qwen3-thinking", "thinking"]):
+        return PREFERRED_MODELS["qwen3-thinking"]
     if any(word in model_clean for word in ["qwen", "qwen3"]):
         return PREFERRED_MODELS["qwen"]
     
