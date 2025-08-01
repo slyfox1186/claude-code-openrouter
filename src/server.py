@@ -349,6 +349,7 @@ def handle_chat_tool(arguments, req_id):
         # Model context windows (total available)
         model_context_windows = {
             "qwen/qwen3-235b-a22b-2507": 262144,
+            "qwen/qwen3-235b-a22b-thinking-2507": 262144,
             "qwen/qwen3-coder": 262144,
             "deepseek/deepseek-r1-0528": 163840,
             "google/gemini-2.5-pro-preview": 500000,
