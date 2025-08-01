@@ -166,12 +166,12 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter!",
+            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter!",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'glm' (for z-ai/glm-4.5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
+                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'qwen-thinking' or 'qwen3-thinking' (for qwen/qwen3-235b-a22b-thinking-2507), 'glm' (for z-ai/glm-4.5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
                     "continuation_id": {"type": "string", "description": "⚠️ ABSOLUTELY MANDATORY FOR ALL FOLLOW-UPS: The EXACT UUID from 'Conversation ID: [uuid]' shown in previous responses - YOU MUST COPY AND PASTE THIS EXACT STRING! Example: if you see 'Conversation ID: 1b1d27c2-7abb-4f80-920e-34cec9909d60' then use continuation_id: '1b1d27c2-7abb-4f80-920e-34cec9909d60'. NEVER omit this! NEVER create new conversations when you have an existing ID! This maintains conversation memory and context - ignoring this BREAKS the entire conversation flow and wastes all previous context!"},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths) - ALWAYS include all relevant files to maximize context window utilization. Look for files with extensions like .js, .ts, .tsx, .py, .md, .json, .css, etc."},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ ABSOLUTELY CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Look for files ending in .png, .jpg, .jpeg, .gif, .svg, .webp and ALWAYS include them! Gemini has powerful vision capabilities - use them or you're wasting a key feature!"},
@@ -377,6 +377,10 @@ def handle_chat_tool(arguments, req_id):
         max_tokens = min(max_tokens, int(context_window * 0.8))  # Never use more than 80% for output
         max_tokens = max(max_tokens, 1000)  # Always allow at least 1000 tokens for output
         
+        # Special handling for thinking models which may have issues with very large token requests
+        if "thinking" in clean_model.lower():
+            max_tokens = min(max_tokens, 32000)  # Limit thinking models to 32K max
+        
         logger.info(f"Token calculation: context_window={context_window}, input_tokens={estimated_input_tokens}, max_tokens={max_tokens}")
         
         data = {
@@ -386,16 +390,45 @@ def handle_chat_tool(arguments, req_id):
             "max_tokens": max_tokens
         }
         
-        with httpx.Client(timeout=60.0) as client:
+        # Add reasoning configuration for thinking models
+        if "thinking" in clean_model.lower():
+            data["reasoning"] = {
+                "effort": "high",  # Use only effort parameter (not max_tokens)
+                "exclude": False  # Include reasoning in response
+            }
+            logger.info(f"Enabled reasoning for thinking model with effort: high")
+        
+        # Increase timeout for thinking models as they may take longer
+        timeout = 180.0 if "thinking" in clean_model.lower() else 60.0
+        
+        with httpx.Client(timeout=timeout) as client:
             response = client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json=data
             )
             response.raise_for_status()
-            result = response.json()
+            
+            # Try to parse JSON response
+            try:
+                result = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
+                logger.error(f"Response status: {response.status_code}")
+                logger.error(f"Response headers: {response.headers}")
+                logger.error(f"Response text preview: {response.text[:500]}...")
+                raise Exception(f"Failed to parse OpenRouter response: {e}")
         
-        ai_response = result["choices"][0]["message"]["content"]
+        # Extract response, handling both regular content and reasoning tokens
+        message = result["choices"][0]["message"]
+        ai_response = message.get("content", "")
+        
+        # Check if model returned reasoning tokens
+        reasoning = message.get("reasoning", "")
+        if reasoning:
+            # Include reasoning in the response for thinking models
+            ai_response = f"{reasoning}\n\n---\n\n{ai_response}" if ai_response else reasoning
+            logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
         
         # Add AI response to conversation
         conversation_manager.add_message(continuation_id, "assistant", ai_response)
@@ -656,16 +689,37 @@ def handle_chat_with_custom_model(arguments, req_id):
         if max_tokens:
             data["max_tokens"] = max_tokens
         
-        with httpx.Client(timeout=60.0) as client:
+        # Increase timeout for thinking models as they may take longer
+        timeout = 180.0 if "thinking" in clean_model.lower() else 60.0
+        
+        with httpx.Client(timeout=timeout) as client:
             response = client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json=data
             )
             response.raise_for_status()
-            result = response.json()
+            
+            # Try to parse JSON response
+            try:
+                result = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
+                logger.error(f"Response status: {response.status_code}")
+                logger.error(f"Response headers: {response.headers}")
+                logger.error(f"Response text preview: {response.text[:500]}...")
+                raise Exception(f"Failed to parse OpenRouter response: {e}")
         
-        ai_response = result["choices"][0]["message"]["content"]
+        # Extract response, handling both regular content and reasoning tokens
+        message = result["choices"][0]["message"]
+        ai_response = message.get("content", "")
+        
+        # Check if model returned reasoning tokens
+        reasoning = message.get("reasoning", "")
+        if reasoning:
+            # Include reasoning in the response for thinking models
+            ai_response = f"{reasoning}\n\n---\n\n{ai_response}" if ai_response else reasoning
+            logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
         
         # Add AI response to conversation
         conversation_manager.add_message(continuation_id, "assistant", ai_response)
