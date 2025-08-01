@@ -17,10 +17,10 @@ from dotenv import load_dotenv
 # Set up paths for both direct execution and module import
 try:
     from .conversation_manager import ConversationManager
-    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS
+    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE
 except ImportError:
     from conversation_manager import ConversationManager
-    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS
+    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE
 
 # Simple logging setup
 logging.basicConfig(
@@ -209,6 +209,23 @@ def handle_tools_list(req_id):
                     "continuation_id": {"type": "string", "description": "Conversation ID to delete"}
                 },
                 "required": ["continuation_id"]
+            }
+        },
+        {
+            "name": "chat_with_custom_model",
+            "description": "Chat with a custom OpenRouter model using the exact model code. This tool allows you to specify any model available on OpenRouter by its full model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct', etc.). Use this when the user wants to use a specific model not covered by the standard aliases.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
+                    "custom_model": {"type": "string", "description": "The exact OpenRouter model code to use (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). This should be the full model identifier as used by OpenRouter."},
+                    "continuation_id": {"type": "string", "description": "Optional: Existing conversation ID to continue. If not provided, a new conversation will be started."},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths)"},
+                    "images": {"type": "array", "items": {"type": "string"}, "description": "Images for visual analysis (absolute paths)"},
+                    "max_tokens": {"type": "integer", "description": "Optional: Maximum tokens for the response. If not specified, will use model's default."},
+                    "temperature": {"type": "number", "description": "Optional: Temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0}
+                },
+                "required": ["prompt", "custom_model"]
             }
         }
     ]
@@ -531,6 +548,164 @@ def handle_delete_conversation(arguments, req_id):
     finally:
         GracefulShutdownProtection.unregister_request(req_id)
 
+def handle_chat_with_custom_model(arguments, req_id):
+    """Handle chat_with_custom_model tool for custom OpenRouter models."""
+    logger.info(f"Handling chat_with_custom_model tool: {arguments}")
+    
+    # Register this request for graceful shutdown protection
+    continuation_id = arguments.get("continuation_id")
+    GracefulShutdownProtection.register_request(req_id, "chat_with_custom_model", continuation_id)
+    
+    try:
+        prompt = arguments.get("prompt")
+        custom_model = arguments.get("custom_model")
+        files = arguments.get("files", [])
+        images = arguments.get("images", [])
+        max_tokens = arguments.get("max_tokens")
+        temperature = arguments.get("temperature", DEFAULT_TEMPERATURE)
+        
+        if not prompt:
+            send_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32602, "message": "Missing required parameter: prompt"}
+            })
+            return
+            
+        if not custom_model:
+            send_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32602, "message": "Missing required parameter: custom_model"}
+            })
+            return
+        
+        # Create or get conversation
+        if not continuation_id:
+            continuation_id = conversation_manager.create_conversation()
+        
+        # Check for shutdown request before proceeding
+        if shutdown_requested:
+            logger.warning(f"PROTECTION: Rejecting new request {req_id} due to shutdown")
+            send_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": "Server shutting down, request rejected"}
+            })
+            return
+        
+        # Process files and images to add to prompt
+        enhanced_prompt = prompt
+        
+        if files:
+            logger.info(f"Processing {len(files)} files")
+            enhanced_prompt += "\n\n**Attached Files:**\n"
+            for file_path in files:
+                try:
+                    # Convert host path to container path
+                    if '/home/' in file_path:
+                        path_parts = file_path.split('/')
+                        if len(path_parts) >= 3 and path_parts[1] == 'home':
+                            username = path_parts[2]
+                            container_path = file_path.replace(f'/home/{username}', f'/host/home/{username}')
+                        else:
+                            container_path = file_path
+                    else:
+                        container_path = file_path
+                    
+                    logger.info(f"Reading file: {file_path} -> {container_path}")
+                    with open(container_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        enhanced_prompt += f"\n**{file_path}:**\n```\n{content}\n```\n"
+                except Exception as e:
+                    logger.error(f"Error reading file {file_path}: {e}")
+                    enhanced_prompt += f"\n**{file_path}:** Error reading file: {e}\n"
+        
+        if images:
+            logger.info(f"Processing {len(images)} images")
+            enhanced_prompt += "\n\n**Attached Images:**\n"
+            for image_path in images:
+                enhanced_prompt += f"- {image_path}\n"
+        
+        # Add user message with enhanced content
+        conversation_manager.add_message(continuation_id, "user", enhanced_prompt)
+        messages = conversation_manager.get_conversation_history(continuation_id)
+        
+        logger.info(f"Using custom model: {custom_model}")
+        logger.info(f"Temperature: {temperature}")
+        if max_tokens:
+            logger.info(f"Max tokens: {max_tokens}")
+        
+        import httpx
+        
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://claude.ai",
+            "X-Title": "OpenRouter MCP Server"
+        }
+        
+        data = {
+            "model": custom_model,
+            "messages": messages,
+            "temperature": temperature
+        }
+        
+        # Only add max_tokens if specified
+        if max_tokens:
+            data["max_tokens"] = max_tokens
+        
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            result = response.json()
+        
+        ai_response = result["choices"][0]["message"]["content"]
+        
+        # Add AI response to conversation
+        conversation_manager.add_message(continuation_id, "assistant", ai_response)
+        
+        # Send result
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": f"**{custom_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*"
+                }],
+                "continuation_id": continuation_id
+            }
+        })
+        
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error with custom model: {e}")
+        error_detail = e.response.text
+        try:
+            error_json = e.response.json()
+            error_detail = error_json.get('error', {}).get('message', error_detail)
+        except:
+            pass
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)} - Details: {error_detail}"}
+        })
+    except Exception as e:
+        logger.error(f"Error with custom model: {e}")
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": f"Error: {str(e)}"}
+        })
+    finally:
+        # Always unregister the request when done
+        GracefulShutdownProtection.unregister_request(req_id)
+
 def handle_tools_call(params, req_id):
     """Handle tools/call request."""
     tool_name = params.get("name")
@@ -546,6 +721,8 @@ def handle_tools_call(params, req_id):
         handle_get_conversation(arguments, req_id)
     elif tool_name == "delete_conversation":
         handle_delete_conversation(arguments, req_id)
+    elif tool_name == "chat_with_custom_model":
+        handle_chat_with_custom_model(arguments, req_id)
     else:
         send_response({
             "jsonrpc": "2.0",
