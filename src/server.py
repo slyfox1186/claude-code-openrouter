@@ -166,7 +166,7 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter!",
+            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter! 5) ⚠️ THINKING MODELS: When using qwen-thinking or qwen3-thinking, ALWAYS set thinking_effort to 'high' for complex problems, debugging, or analysis. Use 'medium' for moderate tasks and 'low' only for simple queries. DEFAULT TO 'high' when in doubt - the thinking process is what makes these models powerful!",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -175,7 +175,8 @@ def handle_tools_list(req_id):
                     "continuation_id": {"type": "string", "description": "⚠️ ABSOLUTELY MANDATORY FOR ALL FOLLOW-UPS: The EXACT UUID from 'Conversation ID: [uuid]' shown in previous responses - YOU MUST COPY AND PASTE THIS EXACT STRING! Example: if you see 'Conversation ID: 1b1d27c2-7abb-4f80-920e-34cec9909d60' then use continuation_id: '1b1d27c2-7abb-4f80-920e-34cec9909d60'. NEVER omit this! NEVER create new conversations when you have an existing ID! This maintains conversation memory and context - ignoring this BREAKS the entire conversation flow and wastes all previous context!"},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths) - ALWAYS include all relevant files to maximize context window utilization. Look for files with extensions like .js, .ts, .tsx, .py, .md, .json, .css, etc."},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ ABSOLUTELY CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Look for files ending in .png, .jpg, .jpeg, .gif, .svg, .webp and ALWAYS include them! Gemini has powerful vision capabilities - use them or you're wasting a key feature!"},
-                    "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True}
+                    "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True},
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "⚠️ FOR THINKING MODELS (qwen-thinking, qwen3-thinking): Controls reasoning depth. 'high' = 80% tokens for deep analysis, 'medium' = 50% tokens for moderate reasoning (DEFAULT to avoid JSON parsing issues), 'low' = 20% tokens for simple queries. Use 'high' only for: very complex debugging, deep code analysis, architecture design. Start with 'medium' for most tasks.", "default": "medium"}
                 },
                 "required": ["prompt"]
             }
@@ -223,7 +224,8 @@ def handle_tools_list(req_id):
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths)"},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "Images for visual analysis (absolute paths)"},
                     "max_tokens": {"type": "integer", "description": "Optional: Maximum tokens for the response. If not specified, will use model's default."},
-                    "temperature": {"type": "number", "description": "Optional: Temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0}
+                    "temperature": {"type": "number", "description": "Optional: Temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0},
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "For thinking models: Controls reasoning depth. 'high' = 80% tokens for deep analysis, 'medium' = 50% tokens, 'low' = 20% tokens. Default is 'medium' to avoid JSON parsing issues.", "default": "medium"}
                 },
                 "required": ["prompt", "custom_model"]
             }
@@ -249,6 +251,7 @@ def handle_chat_tool(arguments, req_id):
         files = arguments.get("files", [])
         images = arguments.get("images", [])
         force_internet_search = arguments.get("force_internet_search", True)
+        thinking_effort = arguments.get("thinking_effort", "medium")  # Default to medium to avoid JSON parsing issues
     
         
         if not prompt:
@@ -379,7 +382,7 @@ def handle_chat_tool(arguments, req_id):
         
         # Special handling for thinking models which may have issues with very large token requests
         if "thinking" in clean_model.lower():
-            max_tokens = min(max_tokens, 32000)  # Limit thinking models to 32K max
+            max_tokens = min(max_tokens, 16000)  # Limit thinking models to 16K max to prevent JSON parsing issues
         
         logger.info(f"Token calculation: context_window={context_window}, input_tokens={estimated_input_tokens}, max_tokens={max_tokens}")
         
@@ -392,11 +395,15 @@ def handle_chat_tool(arguments, req_id):
         
         # Add reasoning configuration for thinking models
         if "thinking" in clean_model.lower():
+            # Validate thinking_effort value
+            if thinking_effort not in ["high", "medium", "low"]:
+                thinking_effort = "medium"  # Default to medium if invalid
+                
             data["reasoning"] = {
-                "effort": "high",  # Use only effort parameter (not max_tokens)
+                "effort": thinking_effort,  # Use configured effort level
                 "exclude": False  # Include reasoning in response
             }
-            logger.info(f"Enabled reasoning for thinking model with effort: high")
+            logger.info(f"Enabled reasoning for thinking model with effort: {thinking_effort}")
         
         # Increase timeout for thinking models as they may take longer
         timeout = 180.0 if "thinking" in clean_model.lower() else 60.0
@@ -409,15 +416,43 @@ def handle_chat_tool(arguments, req_id):
             )
             response.raise_for_status()
             
-            # Try to parse JSON response
+            # Try to parse JSON response with better error handling
             try:
+                response_text = response.text
+                logger.info(f"Response size: {len(response_text)} characters")
+                
+                # Check if response is too large (over 1MB might cause issues)
+                if len(response_text) > 1048576:  # 1MB
+                    logger.warning(f"Very large response ({len(response_text)} chars), may cause parsing issues")
+                
                 result = response.json()
+                
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {e}")
                 logger.error(f"Response status: {response.status_code}")
                 logger.error(f"Response headers: {response.headers}")
-                logger.error(f"Response text preview: {response.text[:500]}...")
-                raise Exception(f"Failed to parse OpenRouter response: {e}")
+                logger.error(f"Response size: {len(response.text)} characters")
+                logger.error(f"Response text start: {response.text[:1000]}...")
+                logger.error(f"Response text end: {response.text[-1000:]}...")
+                
+                # Try to find where JSON might be truncated
+                try:
+                    import json as json_module
+                    # Attempt to find valid JSON by truncating at different points
+                    text = response.text
+                    for i in range(len(text) - 1, 0, -100):  # Work backwards in chunks
+                        try:
+                            truncated = text[:i]
+                            if truncated.strip().endswith('}'):
+                                result = json_module.loads(truncated)
+                                logger.warning(f"Successfully parsed truncated response at {i} chars")
+                                break
+                        except json_module.JSONDecodeError:
+                            continue
+                    else:
+                        raise Exception(f"Failed to parse OpenRouter response: {e}")
+                except Exception:
+                    raise Exception(f"Failed to parse OpenRouter response: {e}")
         
         # Extract response, handling both regular content and reasoning tokens
         message = result["choices"][0]["message"]
@@ -597,6 +632,7 @@ def handle_chat_with_custom_model(arguments, req_id):
         images = arguments.get("images", [])
         max_tokens = arguments.get("max_tokens")
         temperature = arguments.get("temperature", DEFAULT_TEMPERATURE)
+        thinking_effort = arguments.get("thinking_effort", "medium")
         
         if not prompt:
             send_response({
@@ -689,8 +725,20 @@ def handle_chat_with_custom_model(arguments, req_id):
         if max_tokens:
             data["max_tokens"] = max_tokens
         
+        # Add reasoning configuration for thinking models
+        if "thinking" in custom_model.lower():
+            # Validate thinking_effort value
+            if thinking_effort not in ["high", "medium", "low"]:
+                thinking_effort = "medium"  # Default to medium if invalid
+                
+            data["reasoning"] = {
+                "effort": thinking_effort,  # Use configured effort level
+                "exclude": False  # Include reasoning in response
+            }
+            logger.info(f"Enabled reasoning for custom thinking model with effort: {thinking_effort}")
+        
         # Increase timeout for thinking models as they may take longer
-        timeout = 180.0 if "thinking" in clean_model.lower() else 60.0
+        timeout = 180.0 if "thinking" in custom_model.lower() else 60.0
         
         with httpx.Client(timeout=timeout) as client:
             response = client.post(
@@ -700,15 +748,43 @@ def handle_chat_with_custom_model(arguments, req_id):
             )
             response.raise_for_status()
             
-            # Try to parse JSON response
+            # Try to parse JSON response with better error handling
             try:
+                response_text = response.text
+                logger.info(f"Response size: {len(response_text)} characters")
+                
+                # Check if response is too large (over 1MB might cause issues)
+                if len(response_text) > 1048576:  # 1MB
+                    logger.warning(f"Very large response ({len(response_text)} chars), may cause parsing issues")
+                
                 result = response.json()
+                
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {e}")
                 logger.error(f"Response status: {response.status_code}")
                 logger.error(f"Response headers: {response.headers}")
-                logger.error(f"Response text preview: {response.text[:500]}...")
-                raise Exception(f"Failed to parse OpenRouter response: {e}")
+                logger.error(f"Response size: {len(response.text)} characters")
+                logger.error(f"Response text start: {response.text[:1000]}...")
+                logger.error(f"Response text end: {response.text[-1000:]}...")
+                
+                # Try to find where JSON might be truncated
+                try:
+                    import json as json_module
+                    # Attempt to find valid JSON by truncating at different points
+                    text = response.text
+                    for i in range(len(text) - 1, 0, -100):  # Work backwards in chunks
+                        try:
+                            truncated = text[:i]
+                            if truncated.strip().endswith('}'):
+                                result = json_module.loads(truncated)
+                                logger.warning(f"Successfully parsed truncated response at {i} chars")
+                                break
+                        except json_module.JSONDecodeError:
+                            continue
+                    else:
+                        raise Exception(f"Failed to parse OpenRouter response: {e}")
+                except Exception:
+                    raise Exception(f"Failed to parse OpenRouter response: {e}")
         
         # Extract response, handling both regular content and reasoning tokens
         message = result["choices"][0]["message"]
