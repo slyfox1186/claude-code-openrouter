@@ -1,0 +1,13 @@
+{
+  "name": "openrouter-mcp-tests",
+  "version": "1.0.0",
+  "description": "Test scripts for OpenRouter MCP server",
+  "main": "test_mcp_server.js",
+  "scripts": {
+    "test": "node test_mcp_server.js",
+    "test-thinking": "node test_thinking_model.js"
+  },
+  "keywords": ["mcp", "openrouter", "test"],
+  "author": "Claude Code",
+  "license": "MIT"
+}
