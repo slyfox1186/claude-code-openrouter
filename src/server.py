@@ -166,17 +166,17 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) You MUST include ALL related files and fully understand the problem by scanning the code yourself BEFORE you send ANY query to the LLMs or you risk it not having enough background information to return an optimal and correct response. Always attach relevant files, read documentation, and provide complete context. 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter! 5) ⚠️ THINKING MODELS: When using qwen-thinking or qwen3-thinking, ALWAYS set thinking_effort to 'high' for complex problems, debugging, or analysis. Use 'medium' for moderate tasks and 'low' only for simple queries. DEFAULT TO 'high' when in doubt - the thinking process is what makes these models powerful!",
+            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) 🚨 FILE ATTACHMENT IS MANDATORY: You MUST ALWAYS include ALL related files in the 'files' parameter! NEVER be lazy about this! The LLM cannot see your context - it relies ENTIRELY on what you send. Before EVERY query: a) Use Glob/Grep to find ALL relevant files (.js, .ts, .tsx, .py, .md, .json, .css, etc.), b) Read and understand the code yourself, c) Include EVERY file that could be relevant - when in doubt, INCLUDE IT! Failure to attach files results in USELESS responses! The LLM will give WRONG answers without proper context! 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'deepseek-v3.1', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter! 5) ⚠️ THINKING MODELS: When using qwen-thinking or qwen3-thinking, ALWAYS set thinking_effort to 'high' for complex problems, debugging, or analysis. Use 'medium' for moderate tasks and 'low' only for simple queries. DEFAULT TO 'high' when in doubt - the thinking process is what makes these models powerful!",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'qwen-thinking' or 'qwen3-thinking' (for qwen/qwen3-235b-a22b-thinking-2507), 'glm' (for z-ai/glm-4.5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
+                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'qwen-thinking' or 'qwen3-thinking' (for qwen/qwen3-235b-a22b-thinking-2507), 'glm' (for z-ai/glm-4.5), 'gpt-5' (for openai/gpt-5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
                     "continuation_id": {"type": "string", "description": "⚠️ ABSOLUTELY MANDATORY FOR ALL FOLLOW-UPS: The EXACT UUID from 'Conversation ID: [uuid]' shown in previous responses - YOU MUST COPY AND PASTE THIS EXACT STRING! Example: if you see 'Conversation ID: 1b1d27c2-7abb-4f80-920e-34cec9909d60' then use continuation_id: '1b1d27c2-7abb-4f80-920e-34cec9909d60'. NEVER omit this! NEVER create new conversations when you have an existing ID! This maintains conversation memory and context - ignoring this BREAKS the entire conversation flow and wastes all previous context!"},
-                    "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths) - ALWAYS include all relevant files to maximize context window utilization. Look for files with extensions like .js, .ts, .tsx, .py, .md, .json, .css, etc."},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "🚨 MANDATORY FOR ACCURATE RESPONSES: Files for context (absolute paths) - You MUST include ALL relevant files or the LLM will give WRONG answers! The LLM has ZERO context about your codebase unless you attach files. ALWAYS include: source files, config files, test files, documentation, package.json, requirements.txt, etc. Use Glob/Grep FIRST to find all related files. When debugging, include ALL files that could be involved. NEVER skip this - the quality of the response depends ENTIRELY on the files you attach!"},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ ABSOLUTELY CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Look for files ending in .png, .jpg, .jpeg, .gif, .svg, .webp and ALWAYS include them! Gemini has powerful vision capabilities - use them or you're wasting a key feature!"},
                     "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True},
-                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "⚠️ FOR THINKING MODELS (qwen-thinking, qwen3-thinking): Controls reasoning depth. 'high' = 80% tokens for deep analysis, 'medium' = 50% tokens for moderate reasoning (DEFAULT to avoid JSON parsing issues), 'low' = 20% tokens for simple queries. Use 'high' only for: very complex debugging, deep code analysis, architecture design. Start with 'medium' for most tasks.", "default": "medium"}
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "⚠️ FOR REASONING MODELS: Controls reasoning depth. 'high' = 80% tokens for deep analysis (DEFAULT), 'medium' = 50% tokens for moderate reasoning, 'low' = 20% tokens for simple queries. High reasoning provides the best results for complex problems.", "default": "high"}
                 },
                 "required": ["prompt"]
             }
@@ -221,11 +221,11 @@ def handle_tools_list(req_id):
                     "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
                     "custom_model": {"type": "string", "description": "The exact OpenRouter model code to use (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). This should be the full model identifier as used by OpenRouter."},
                     "continuation_id": {"type": "string", "description": "Optional: Existing conversation ID to continue. If not provided, a new conversation will be started."},
-                    "files": {"type": "array", "items": {"type": "string"}, "description": "Files for context (absolute paths)"},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "🚨 MANDATORY: Files for context (absolute paths) - Include ALL relevant files or get WRONG answers! Use Glob/Grep first to find files!"},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "Images for visual analysis (absolute paths)"},
                     "max_tokens": {"type": "integer", "description": "Optional: Maximum tokens for the response. If not specified, will use model's default."},
                     "temperature": {"type": "number", "description": "Optional: Temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0},
-                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "For thinking models: Controls reasoning depth. 'high' = 80% tokens for deep analysis, 'medium' = 50% tokens, 'low' = 20% tokens. Default is 'medium' to avoid JSON parsing issues.", "default": "medium"}
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "For reasoning models: Controls reasoning depth. 'high' = 80% tokens for deep analysis (DEFAULT), 'medium' = 50% tokens, 'low' = 20% tokens. High reasoning provides the best results for complex problems.", "default": "high"}
                 },
                 "required": ["prompt", "custom_model"]
             }
@@ -251,7 +251,7 @@ def handle_chat_tool(arguments, req_id):
         files = arguments.get("files", [])
         images = arguments.get("images", [])
         force_internet_search = arguments.get("force_internet_search", True)
-        thinking_effort = arguments.get("thinking_effort", "medium")  # Default to medium to avoid JSON parsing issues
+        thinking_effort = arguments.get("thinking_effort", "high")  # Default to high for maximum reasoning capability
     
         
         if not prompt:
@@ -355,10 +355,12 @@ def handle_chat_tool(arguments, req_id):
             "qwen/qwen3-235b-a22b-thinking-2507": 262144,
             "qwen/qwen3-coder": 262144,
             "deepseek/deepseek-r1-0528": 163840,
+            "deepseek/deepseek-chat-v3.1": 163840,
             "google/gemini-2.5-pro-preview": 500000,
             "moonshotai/kimi-k2": 131072,
             "x-ai/grok-4": 32000,
-            "z-ai/glm-4.5": 131072
+            "z-ai/glm-4.5": 131072,
+            "openai/gpt-5": 400000
         }
         
         # Remove :online suffix for model lookup
@@ -393,20 +395,49 @@ def handle_chat_tool(arguments, req_id):
             "max_tokens": max_tokens
         }
         
-        # Add reasoning configuration for thinking models
-        if "thinking" in clean_model.lower():
+        # Add reasoning configuration for reasoning-capable models
+        reasoning_models = ["thinking", "claude", "gemini", "glm", "deepseek", "deepseek-v3.1", "grok", "qwen"]
+        has_reasoning = any(keyword in clean_model.lower() for keyword in reasoning_models)
+        
+        if has_reasoning:
+            # Import DEFAULT_MAX_REASONING_TOKENS
+            from .config import DEFAULT_MAX_REASONING_TOKENS
+            
             # Validate thinking_effort value
             if thinking_effort not in ["high", "medium", "low"]:
-                thinking_effort = "medium"  # Default to medium if invalid
-                
-            data["reasoning"] = {
-                "effort": thinking_effort,  # Use configured effort level
-                "exclude": False  # Include reasoning in response
+                thinking_effort = "high"  # Default to high if invalid
+            
+            # Calculate reasoning token budget based on effort level
+            # Based on best practices: high=80%, medium=50%, low=20% of max reasoning tokens
+            effort_ratios = {
+                "high": 0.8,    # 80% of max_reasoning_tokens for deep analysis
+                "medium": 0.5,  # 50% of max_reasoning_tokens for moderate reasoning
+                "low": 0.2      # 20% of max_reasoning_tokens for simple queries
             }
-            logger.info(f"Enabled reasoning for thinking model with effort: {thinking_effort}")
+            
+            reasoning_budget = int(DEFAULT_MAX_REASONING_TOKENS * effort_ratios[thinking_effort])
+            
+            # Ensure reasoning budget doesn't exceed model limits (32K max for Claude)
+            reasoning_budget = min(reasoning_budget, 32000 if "claude" in clean_model.lower() else DEFAULT_MAX_REASONING_TOKENS)
+            
+            # Configure reasoning based on model provider
+            if "anthropic" in clean_model.lower() or "claude" in clean_model.lower():
+                # Claude uses budget_tokens in thinking parameter
+                data["thinking"] = {
+                    "budget_tokens": reasoning_budget
+                }
+            else:
+                # DeepSeek, Gemini, GLM, Grok, Qwen and other reasoning models use reasoning parameter
+                data["reasoning"] = {
+                    "effort": thinking_effort,
+                    "max_thinking_tokens": reasoning_budget,
+                    "exclude": False
+                }
+            
+            logger.info(f"Enabled reasoning for model {clean_model} with effort: {thinking_effort}, reasoning_budget: {reasoning_budget}")
         
-        # Increase timeout for thinking models as they may take longer
-        timeout = 180.0 if "thinking" in clean_model.lower() else 60.0
+        # Increase timeout for reasoning models as they may take longer
+        timeout = 180.0 if has_reasoning else 60.0
         
         with httpx.Client(timeout=timeout) as client:
             response = client.post(
@@ -632,7 +663,7 @@ def handle_chat_with_custom_model(arguments, req_id):
         images = arguments.get("images", [])
         max_tokens = arguments.get("max_tokens")
         temperature = arguments.get("temperature", DEFAULT_TEMPERATURE)
-        thinking_effort = arguments.get("thinking_effort", "medium")
+        thinking_effort = arguments.get("thinking_effort", "high")  # Default to high for maximum reasoning capability
         
         if not prompt:
             send_response({
@@ -725,17 +756,46 @@ def handle_chat_with_custom_model(arguments, req_id):
         if max_tokens:
             data["max_tokens"] = max_tokens
         
-        # Add reasoning configuration for thinking models
-        if "thinking" in custom_model.lower():
+        # Add reasoning configuration for reasoning-capable models
+        reasoning_models = ["thinking", "claude", "gemini", "glm", "deepseek", "deepseek-v3.1", "grok", "qwen"]
+        has_reasoning = any(keyword in custom_model.lower() for keyword in reasoning_models)
+        
+        if has_reasoning:
+            # Import DEFAULT_MAX_REASONING_TOKENS
+            from .config import DEFAULT_MAX_REASONING_TOKENS
+            
             # Validate thinking_effort value
             if thinking_effort not in ["high", "medium", "low"]:
-                thinking_effort = "medium"  # Default to medium if invalid
-                
-            data["reasoning"] = {
-                "effort": thinking_effort,  # Use configured effort level
-                "exclude": False  # Include reasoning in response
+                thinking_effort = "high"  # Default to high if invalid
+            
+            # Calculate reasoning token budget based on effort level
+            # Based on best practices: high=80%, medium=50%, low=20% of max reasoning tokens
+            effort_ratios = {
+                "high": 0.8,    # 80% of max_reasoning_tokens for deep analysis
+                "medium": 0.5,  # 50% of max_reasoning_tokens for moderate reasoning
+                "low": 0.2      # 20% of max_reasoning_tokens for simple queries
             }
-            logger.info(f"Enabled reasoning for custom thinking model with effort: {thinking_effort}")
+            
+            reasoning_budget = int(DEFAULT_MAX_REASONING_TOKENS * effort_ratios[thinking_effort])
+            
+            # Ensure reasoning budget doesn't exceed model limits (32K max for Claude)
+            reasoning_budget = min(reasoning_budget, 32000 if "claude" in custom_model.lower() else DEFAULT_MAX_REASONING_TOKENS)
+            
+            # Configure reasoning based on model provider
+            if "anthropic" in custom_model.lower() or "claude" in custom_model.lower():
+                # Claude uses budget_tokens in thinking parameter
+                data["thinking"] = {
+                    "budget_tokens": reasoning_budget
+                }
+            else:
+                # DeepSeek, Gemini, GLM, Grok, Qwen and other reasoning models use reasoning parameter
+                data["reasoning"] = {
+                    "effort": thinking_effort,
+                    "max_thinking_tokens": reasoning_budget,
+                    "exclude": False
+                }
+            
+            logger.info(f"Enabled reasoning for custom model {custom_model} with effort: {thinking_effort}, reasoning_budget: {reasoning_budget}")
         
         # Increase timeout for thinking models as they may take longer
         timeout = 180.0 if "thinking" in custom_model.lower() else 60.0

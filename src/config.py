@@ -20,6 +20,7 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/ap
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "z-ai/glm-4.5")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
 DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "8192"))
+DEFAULT_MAX_REASONING_TOKENS = int(os.getenv("DEFAULT_MAX_REASONING_TOKENS", "16384"))  # Max thinking/reasoning tokens
 
 # Tool configuration
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
@@ -42,6 +43,8 @@ PREFERRED_MODELS = {
     "gemini-pro": "google/gemini-2.5-pro-preview",
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
+    "deepseek-v3.1": "deepseek/deepseek-chat-v3.1",
+    "deepseek-chat-v3": "deepseek/deepseek-chat-v3.1",
     "kimi-k2": "moonshotai/kimi-k2",
     "kimi": "moonshotai/kimi-k2",
     "grok-4": "x-ai/grok-4",
@@ -52,14 +55,16 @@ PREFERRED_MODELS = {
     "qwen-thinking": "qwen/qwen3-235b-a22b-thinking-2507",
     "qwen": "qwen/qwen3-235b-a22b-2507",
     "glm-4.5": "z-ai/glm-4.5",
-    "glm": "z-ai/glm-4.5"
+    "glm": "z-ai/glm-4.5",
+    "gpt-5": "openai/gpt-5",
+    "openai-gpt-5": "openai/gpt-5"
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
-    "vision": ["google/gemini-2.5-pro-preview"],
-    "function_calling": ["google/gemini-2.5-pro-preview"],
-    "large_context": ["deepseek/deepseek-r1-0528", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder", "qwen/qwen3-235b-a22b-thinking-2507", "z-ai/glm-4.5"],
+    "vision": ["google/gemini-2.5-pro-preview", "openai/gpt-5"],
+    "function_calling": ["google/gemini-2.5-pro-preview", "openai/gpt-5"],
+    "large_context": ["deepseek/deepseek-r1-0528", "deepseek/deepseek-chat-v3.1", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-235b-a22b-2507", "qwen/qwen3-coder", "qwen/qwen3-235b-a22b-thinking-2507", "z-ai/glm-4.5", "openai/gpt-5"],
     "internet_access": ["google/gemini-2.5-pro-preview"],
 }
 
@@ -76,6 +81,7 @@ def get_config() -> Dict[str, Any]:
             "model": DEFAULT_MODEL,
             "temperature": DEFAULT_TEMPERATURE,
             "max_tokens": DEFAULT_MAX_TOKENS,
+            "max_reasoning_tokens": DEFAULT_MAX_REASONING_TOKENS,
         },
         "tools": {
             "web_search": ENABLE_WEB_SEARCH,
@@ -137,8 +143,11 @@ def get_model_alias(model_name: str) -> str:
     if any(word in model_clean for word in ["gemini", "google"]):
         return PREFERRED_MODELS["gemini-2.5-pro"]
     
-    # "deepseek" -> deepseek-r1-0528
-    if any(word in model_clean for word in ["deepseek", "r1"]):
+    # "deepseek" with version handling
+    # Check for v3/v3.1/latest first, then fall back to r1
+    if any(word in model_clean for word in ["v3.1", "v3", "chat-v3", "latest"]) and "deepseek" in model_clean:
+        return PREFERRED_MODELS["deepseek-v3.1"]
+    elif any(word in model_clean for word in ["deepseek", "r1"]):
         return PREFERRED_MODELS["deepseek-r1"]
     
     # "kimi" or "moonshot" -> moonshotai/kimi-k2
@@ -160,6 +169,10 @@ def get_model_alias(model_name: str) -> str:
     # "glm" or "z-ai" -> z-ai/glm-4.5
     if any(word in model_clean for word in ["glm", "glm-4.5", "glm4.5", "glm45", "z-ai"]):
         return PREFERRED_MODELS["glm"]
+    
+    # "gpt-5" or "openai" -> openai/gpt-5
+    if any(word in model_clean for word in ["gpt-5", "gpt5", "openai-gpt-5", "openai"]):
+        return PREFERRED_MODELS["gpt-5"]
     
     # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
     for alias, actual_model in PREFERRED_MODELS.items():
