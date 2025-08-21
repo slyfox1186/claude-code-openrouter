@@ -28,6 +28,8 @@ When you use these natural language commands, Claude Code will:
 
 You can use any model available on OpenRouter. Examples include:
 
+- `openai/gpt-5` (latest flagship model with 400K context)
+- `deepseek/deepseek-chat-v3.1` (DeepSeek v3.1 with 163K context)
 - `anthropic/claude-3-opus`
 - `anthropic/claude-3-sonnet`
 - `meta-llama/llama-3.3-70b-instruct`
@@ -48,7 +50,19 @@ Claude: [Uses the specified model for the conversation]
 
 ### With Context
 ```
-You: "I want to use anthropic/claude-3-opus to analyze this code file"
+You: "I want to use openai/gpt-5 to analyze this large codebase"
+Claude: [Automatically uses gpt-5 model with 400K context for your files]
+```
+
+### Using DeepSeek v3
+```
+You: "Use deepseek-v3.1 for this complex reasoning task"
+Claude: [Automatically uses DeepSeek Chat v3.1 with 163K context]
+```
+
+### Advanced Usage
+```
+You: "Use anthropic/claude-3-opus to analyze this code file"
 Claude: [Automatically uses claude-3-opus model with your file]
 ```
 

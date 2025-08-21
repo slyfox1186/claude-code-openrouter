@@ -108,6 +108,9 @@ cp examples/call-openrouter.md ~/.claude/commands/
 # Use DeepSeek R1 (default) - great for reasoning and analysis
 openrouter-docker - chat (prompt: "Explain quantum computing concepts")
 
+# Use DeepSeek Chat v3.1 (deepseek/deepseek-chat-v3.1) - latest version with 163K context
+openrouter-docker - chat (model: "deepseek-v3.1", prompt: "Solve this complex problem step by step")
+
 # Use Gemini 2.5 Pro Preview with automatic web search for current info
 openrouter-docker - chat (model: "gemini", prompt: "What are the latest AI developments in 2025?")
 
@@ -119,6 +122,9 @@ openrouter-docker - chat (model: "kimi", prompt: "Analyze this complex system ar
 
 # Use Grok 4 by X.AI for creative and analytical tasks
 openrouter-docker - chat (model: "grok", prompt: "Help me brainstorm innovative solutions")
+
+# Use GPT-5 for latest flagship performance with 400K context window
+openrouter-docker - chat (model: "gpt-5", prompt: "Analyze this complex business strategy")
 
 # Continue previous conversation with context
 openrouter-docker - chat (continuation_id: "uuid-from-previous", prompt: "Can you elaborate on that?")
@@ -157,9 +163,10 @@ Just use simple names:
 
 - `gemini` → Google Gemini 2.5 Pro Preview (with web search)
 - `deepseek` → DeepSeek R1 (reasoning & analysis)
-- `kimi` → Moonshot Kimi K2 (advanced reasoning)
+- `deepseek-v3.1` → DeepSeek Chat v3.1 (latest version with 163K context)
 - `kimi` → Moonshot Kimi K2 (advanced reasoning)
 - `grok` → X.AI Grok 4 (creative & analytical)
+- `gpt-5` → OpenAI GPT-5 (latest flagship model with 400K context)
 - Plus 400+ other models available by full name
 
 ## 🛠️ Management Commands

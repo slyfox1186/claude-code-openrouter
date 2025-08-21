@@ -130,6 +130,22 @@ class ThinkingModelTester {
         });
         await new Promise(resolve => setTimeout(resolve, 45000));
 
+        // Test GPT-5 model
+        console.log('\n4️⃣ Testing GPT-5 model...');
+        this.sendMessage({
+            jsonrpc: "2.0",
+            method: "tools/call",
+            params: {
+                name: "chat",
+                arguments: {
+                    prompt: "What is 2+2? Explain your reasoning.",
+                    model: "gpt-5"
+                }
+            },
+            id: this.messageId++
+        });
+        await new Promise(resolve => setTimeout(resolve, 30000));
+
         console.log('\n✅ Test completed');
     }
 
