@@ -17,10 +17,10 @@ from dotenv import load_dotenv
 # Set up paths for both direct execution and module import
 try:
     from .conversation_manager import ConversationManager
-    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE
+    from .config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE, should_force_internet_search
 except ImportError:
     from conversation_manager import ConversationManager
-    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE
+    from config import DEFAULT_MODEL, get_model_alias, OPENROUTER_API_KEY, DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE, should_force_internet_search
 
 # Simple logging setup
 logging.basicConfig(
@@ -229,7 +229,7 @@ def _execute_chat_completion(req_id: str, arguments: dict, is_custom_model: bool
             actual_model = model_name
         else:
             model_alias = arguments.get("model", DEFAULT_MODEL)
-            actual_model = get_model_alias(model_alias)
+            actual_model = get_model_alias(model_alias, prompt)
 
         # Create or get conversation
         if not continuation_id:
