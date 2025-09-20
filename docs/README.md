@@ -8,30 +8,48 @@
 
 **Use 400+ AI models (Claude, GPT-4, Gemini, etc.) directly in Claude Code**
 
+*Intelligent model selection • 1M+ token support • Multi-model collaboration*
+
 </div>
 
-## 🚀 Quick Start
+## 🚀 Complete Setup Guide
 
-**Get started in 4 simple steps:**
+**Follow these steps exactly to get up and running in 5 minutes:**
 
-### Step 1: Clone and Setup
+### Prerequisites
+- **Docker** installed and running ([Get Docker](https://docs.docker.com/get-docker/))
+- **Python 3.8+** installed ([Get Python](https://www.python.org/downloads/))
+- **Claude Code** desktop app ([Get Claude Code](https://claude.ai/code))
+- **OpenRouter API key** ([Get API Key](https://openrouter.ai/))
+
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/slyfox1186/claude-code-openrouter.git
 cd claude-code-openrouter
 ```
 
-### Step 2: Configure API Key
-Create a `.env` file with your OpenRouter API key:
+### Step 2: Get Your OpenRouter API Key
+1. Go to [OpenRouter.ai](https://openrouter.ai/)
+2. Sign up or log in to your account
+3. Navigate to "Keys" in your dashboard
+4. Create a new API key
+5. Copy the key (starts with `sk-or-v1-`)
+
+### Step 3: Configure Environment
+Create your `.env` file with your API key:
 ```bash
 cat > .env << 'EOF'
-# OpenRouter API Configuration
+# Required: Your OpenRouter API Key
 OPENROUTER_API_KEY=sk-or-v1-your_actual_api_key_here
+
+# OpenRouter API Configuration
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 # Default Model Settings
 DEFAULT_MODEL=z-ai/glm-4.5
 DEFAULT_TEMPERATURE=0.7
 DEFAULT_MAX_TOKENS=1048576
+DEFAULT_MAX_REASONING_TOKENS=16384
 
 # Tool Configuration
 ENABLE_WEB_SEARCH=true
@@ -41,35 +59,84 @@ FORCE_INTERNET_SEARCH=true
 LOG_LEVEL=INFO
 LOG_FILE=openrouter_mcp.log
 
-# Optional: Rate limiting
+# Rate Limiting
 RATE_LIMIT_REQUESTS_PER_MINUTE=60
 
-# Docker Compose Bake delegation for better build performance
-COMPOSE_BAKE=true
+# MCP Transport
+MAX_MESSAGE_SIZE=10485760
+MAX_CONCURRENT_REQUESTS=10
 EOF
 ```
 
-**Replace `sk-or-v1-your_actual_api_key_here` with your actual OpenRouter API key!**
+**⚠️ IMPORTANT:** Replace `sk-or-v1-your_actual_api_key_here` with your actual OpenRouter API key!
 
-### Step 3: Build and Start Container
+### Step 4: Build and Start
 ```bash
 # Make scripts executable
 chmod +x tools/docker_manager.py add_mcp.sh
 
-# Build and start the container
-python3 tools/docker_manager.py build
-python3 tools/docker_manager.py start
+# Build and start the container in one command
+python3 tools/docker_manager.py build && python3 tools/docker_manager.py start
 ```
 
-### Step 4: Connect to Claude Code
+### Step 5: Connect to Claude Code
 ```bash
 # Add MCP server to Claude Code
 ./add_mcp.sh
 ```
 
-**Done!** Now you can use any OpenRouter model in Claude Code with large file support.
+### Step 6: Verify Setup
+Test that everything is working:
+```bash
+# Check container status
+python3 tools/docker_manager.py status
 
-### Step 5: Install Claude Code Command (Optional)
+# View logs (should show "Simple OpenRouter MCP Server starting...")
+python3 tools/docker_manager.py logs
+```
+
+**🎉 Success!** You can now use any OpenRouter model in Claude Code.
+
+## ✨ Key Features
+
+### 🧠 Intelligent Model Selection
+- **Context-Aware**: Automatically chooses the best model based on your request
+- **Smart Qwen Handling**: `model: "qwen"` intelligently selects between qwen3-max (general) or qwen3-coder-plus (coding)
+- **No More Errors**: Eliminates fuzzy matching failures with LLM-powered decisions
+
+### 🔧 Advanced Capabilities
+- **400+ AI Models**: Access to all OpenRouter models including GPT-4, Claude, Gemini, DeepSeek, etc.
+- **1M+ Token Support**: Send massive files without errors (1,048,576 token limit)
+- **Web Search Integration**: Gemini automatically searches for current information
+- **Conversation Memory**: Continue conversations with full context preservation
+- **Multi-Model Collaboration**: Use `/call-openrouter` command for structured workflows
+
+### 🛡️ Production Ready
+- **Graceful Shutdown Protection**: Survives Claude Code disconnects without breaking
+- **Rate Limiting**: Built-in protection against API limits
+- **Error Handling**: Comprehensive error recovery and logging
+- **Docker Containerized**: Isolated, reproducible environment
+
+## 🎯 Quick Test
+
+Try these commands in Claude Code to verify everything works:
+
+```bash
+# Test basic functionality
+openrouter-docker - chat (prompt: "Hello! Can you confirm you're working?")
+
+# Test intelligent model selection
+openrouter-docker - chat (model: "qwen", prompt: "Write a Python function to reverse a string")
+# ^ Should automatically choose qwen3-coder-plus due to coding context
+
+openrouter-docker - chat (model: "qwen", prompt: "Explain quantum computing")
+# ^ Should automatically choose qwen3-max for general explanation
+
+# Test with file attachment
+openrouter-docker - chat (model: "gemini", files: ["/path/to/file.py"], prompt: "Review this code")
+```
+
+### Step 7: Install Claude Code Command (Optional)
 For enhanced multi-model collaboration, copy the command script:
 ```bash
 # Create Claude commands directory if it doesn't exist
@@ -203,36 +270,131 @@ docker logs openrouter
 docker restart openrouter
 ```
 
-## ⚠️ Troubleshooting
+## 🆘 Troubleshooting Guide
 
-**Container not running?**
+### Common Issues & Solutions
+
+#### 🔧 **Setup Issues**
+
+**"No such file or directory" when running scripts:**
 ```bash
+# Make sure you're in the right directory
+cd claude-code-openrouter
+
+# Make scripts executable
+chmod +x tools/docker_manager.py add_mcp.sh
+```
+
+**Docker not found or permission denied:**
+```bash
+# On Linux, add your user to docker group
+sudo usermod -aG docker $USER
+# Then log out and back in
+
+# Or run with sudo (not recommended)
+sudo python3 tools/docker_manager.py build
+```
+
+**Python command not found:**
+```bash
+# Try different Python commands
+python tools/docker_manager.py build  # On some systems
+py tools/docker_manager.py build      # On Windows
+```
+
+#### 🔌 **Connection Issues**
+
+**MCP server not connecting to Claude Code:**
+```bash
+# Remove and re-add the MCP connection
+claude mcp remove openrouter-docker
+./add_mcp.sh
+
+# Check if container is running
+python3 tools/docker_manager.py status
+
+# Restart Claude Code app completely
+```
+
+**Container won't start:**
+```bash
+# Full restart sequence
+python3 tools/docker_manager.py stop
+python3 tools/docker_manager.py build
+python3 tools/docker_manager.py start
+
+# Check for errors in logs
+python3 tools/docker_manager.py logs
+```
+
+#### 🚫 **API Issues**
+
+**OpenRouter API errors (401 Unauthorized):**
+```bash
+# Check your .env file has the correct API key
+cat .env | grep OPENROUTER_API_KEY
+
+# Verify your API key is valid at openrouter.ai
+# Make sure it starts with 'sk-or-v1-'
+```
+
+**Rate limiting errors (429 Too Many Requests):**
+```bash
+# Edit .env file to reduce rate limit
+echo "RATE_LIMIT_REQUESTS_PER_MINUTE=30" >> .env
+
+# Restart container
 python3 tools/docker_manager.py restart
 ```
 
-**MCP connection issues?**
+**Large file errors (413 Request Too Large):**
+- ✅ This is fixed in the latest version with 1M+ token support
+- Update to latest: `git pull && python3 tools/docker_manager.py build && python3 tools/docker_manager.py restart`
+
+#### 🐛 **Model Selection Issues**
+
+**"Model not found" errors:**
 ```bash
+# Use simple aliases instead of full model names
+# ✅ Good: model: "gemini"
+# ❌ Bad: model: "google/gemini-2.5-pro-preview"
+
+# Test intelligent model selection
+openrouter-docker - chat (model: "qwen", prompt: "test")
+```
+
+### 🔍 **Diagnostic Commands**
+
+**Full system check:**
+```bash
+# Check all components
+echo "=== Docker Status ===" && docker --version
+echo "=== Container Status ===" && python3 tools/docker_manager.py status
+echo "=== MCP Status ===" && claude mcp list
+echo "=== Logs ===" && python3 tools/docker_manager.py logs --tail 5
+```
+
+**Reset everything:**
+```bash
+# Nuclear option - rebuild from scratch
+python3 tools/docker_manager.py stop
+docker system prune -f
+python3 tools/docker_manager.py build
+python3 tools/docker_manager.py start
 claude mcp remove openrouter-docker
 ./add_mcp.sh
 ```
 
-**Build issues?**
-```bash
-python3 tools/docker_manager.py stop
-python3 tools/docker_manager.py build
-python3 tools/docker_manager.py start
-```
+### 🆘 **Still Need Help?**
 
-**Large file attachment errors (400 Bad Request)?**
-- Fixed with 1,048,576 token limit (1M+ tokens supported)
-- Check logs: `python3 tools/docker_manager.py logs`
-- Verify container is running: `python3 tools/docker_manager.py status`
-
-**Still having issues?**
-- Check your API key in `.env` file
-- Make sure Docker is running and accessible
-- Run interactive mode: `python3 tools/docker_manager.py`
-- [Open an issue](https://github.com/slyfox1186/claude-code-openrouter/issues)
+1. **Check logs first:** `python3 tools/docker_manager.py logs`
+2. **Verify your .env file** has a valid OpenRouter API key
+3. **Make sure Docker is running** and accessible
+4. **Try the diagnostic commands** above
+5. **[Open an issue](https://github.com/slyfox1186/claude-code-openrouter/issues)** with:
+   - Your operating system
+   - Error messages from logs
+   - Steps you've already tried
 
 ## 📄 License
 
