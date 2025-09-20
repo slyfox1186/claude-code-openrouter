@@ -19,3 +19,4 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
+    command: ["python3", "-m", "src.server"]
