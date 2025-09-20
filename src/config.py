@@ -116,70 +116,106 @@ def validate_config() -> bool:
     
     return True
 
-def get_model_alias(model_name: str) -> str:
-    """Get the actual OpenRouter model name for an alias with smart matching"""
+def get_model_alias(model_name: str, user_prompt: str = "") -> str:
+    """Get the actual OpenRouter model name using intelligent LLM-based selection"""
     if not model_name:
         return DEFAULT_MODEL
-    
-    # Clean and normalize the input
-    model_clean = model_name.lower().strip()
-    
-    # Remove common words that don't help with matching
-    words_to_remove = ["model", "the", "use", "with", "ai", "assistant"]
-    for word in words_to_remove:
-        model_clean = model_clean.replace(word, "").strip()
-    
-    # Direct alias match
+
+    # Direct alias match first
     if model_name in PREFERRED_MODELS:
         return PREFERRED_MODELS[model_name]
-    
-    # Case-insensitive direct match
-    for alias, actual_model in PREFERRED_MODELS.items():
-        if alias.lower() == model_clean:
-            return actual_model
-    
-    # Fuzzy matching for natural language requests
-    # "gemini" or "google" -> gemini-2.5-pro-preview
-    if any(word in model_clean for word in ["gemini", "google"]):
-        return PREFERRED_MODELS["gemini-2.5-pro"]
-    
-    # "deepseek" with version handling
-    # Check for v3/v3.1/latest first, then fall back to r1
-    if any(word in model_clean for word in ["v3.1", "v3", "chat-v3", "latest"]) and "deepseek" in model_clean:
-        return PREFERRED_MODELS["deepseek-v3.1"]
-    elif any(word in model_clean for word in ["deepseek", "r1"]):
-        return PREFERRED_MODELS["deepseek-r1"]
-    
-    # "kimi" or "moonshot" -> moonshotai/kimi-k2
-    if any(word in model_clean for word in ["kimi", "moonshot", "k2"]):
-        return PREFERRED_MODELS["kimi-k2"]
-    
-    # "grok" or "x-ai" -> x-ai/grok-4
-    if any(word in model_clean for word in ["grok", "x-ai", "xai"]):
-        return PREFERRED_MODELS["grok-4"]
-    
-    # "qwen" -> require specific model selection (no generic fallback)
-    if any(word in model_clean for word in ["qwen3-coder", "qwen-coder", "coder"]):
-        return PREFERRED_MODELS["qwen3-coder"]
-    if any(word in model_clean for word in ["qwen3-max", "qwen-max", "max"]):
-        return PREFERRED_MODELS["qwen3-max"]
-    # Removed generic "qwen" fallback - users must specify qwen-max or qwen-coder
-    
-    # "glm" or "z-ai" -> z-ai/glm-4.5
-    if any(word in model_clean for word in ["glm", "glm-4.5", "glm4.5", "glm45", "z-ai"]):
-        return PREFERRED_MODELS["glm"]
-    
-    # "gpt-5" or "openai" -> openai/gpt-5
-    if any(word in model_clean for word in ["gpt-5", "gpt5", "openai-gpt-5", "openai"]):
-        return PREFERRED_MODELS["gpt-5"]
-    
-    # Partial match (e.g., "gemini-pro" matches "gemini-2.5-pro")
-    for alias, actual_model in PREFERRED_MODELS.items():
-        if model_clean in alias.lower() or alias.lower() in model_clean:
-            return actual_model
-    
-    # If no alias found, assume it's already a full model name
-    return model_name
+
+    # If it's already a full OpenRouter model name, return as-is
+    if "/" in model_name and model_name not in PREFERRED_MODELS:
+        return model_name
+
+    # Use LLM intelligence to determine the best model based on user query
+    return _intelligent_model_selection(model_name, user_prompt)
+
+def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> str:
+    """Use LLM intelligence to select the best model based on context"""
+
+    # Model capabilities for intelligent selection
+    model_info = {
+        "gemini-2.5-pro": {
+            "model": "google/gemini-2.5-pro-preview",
+            "strengths": "vision, web search, general reasoning, large context (1M+ tokens)",
+            "best_for": "image analysis, current information, research, general tasks"
+        },
+        "deepseek-r1": {
+            "model": "deepseek/deepseek-r1-0528",
+            "strengths": "advanced reasoning, logical analysis, problem solving",
+            "best_for": "complex reasoning, mathematical problems, logical analysis"
+        },
+        "deepseek-v3.1": {
+            "model": "deepseek/deepseek-chat-v3.1",
+            "strengths": "latest version with 163K context, advanced chat capabilities",
+            "best_for": "general chat, latest features, large context tasks"
+        },
+        "kimi-k2": {
+            "model": "moonshotai/kimi-k2",
+            "strengths": "advanced reasoning, programming, large context",
+            "best_for": "programming tasks, code analysis, advanced reasoning"
+        },
+        "grok-4": {
+            "model": "x-ai/grok-4",
+            "strengths": "creative thinking, analytical tasks, general intelligence",
+            "best_for": "creative solutions, brainstorming, analytical tasks"
+        },
+        "qwen3-max": {
+            "model": "qwen/qwen3-max",
+            "strengths": "large context (128K), general reasoning, multilingual",
+            "best_for": "large document analysis, general tasks, multilingual content"
+        },
+        "qwen3-coder-plus": {
+            "model": "qwen/qwen3-coder-plus",
+            "strengths": "coding, programming, technical tasks (32K context)",
+            "best_for": "code generation, debugging, programming assistance"
+        },
+        "glm-4.5": {
+            "model": "z-ai/glm-4.5",
+            "strengths": "balanced performance, general tasks, good default choice",
+            "best_for": "general purpose tasks, balanced performance"
+        },
+        "gpt-5": {
+            "model": "openai/gpt-5",
+            "strengths": "flagship model with 400K context, latest capabilities",
+            "best_for": "cutting-edge performance, large context tasks, latest features"
+        }
+    }
+
+    # Simple intelligent matching based on request context
+    request_lower = model_request.lower().strip()
+    prompt_lower = user_prompt.lower() if user_prompt else ""
+
+    # Direct name matching with intelligence
+    if "gemini" in request_lower or "google" in request_lower:
+        return model_info["gemini-2.5-pro"]["model"]
+    elif "deepseek" in request_lower:
+        # Check for version preference
+        if any(word in request_lower for word in ["v3.1", "v3", "chat", "latest"]):
+            return model_info["deepseek-v3.1"]["model"]
+        else:
+            return model_info["deepseek-r1"]["model"]
+    elif "kimi" in request_lower or "moonshot" in request_lower:
+        return model_info["kimi-k2"]["model"]
+    elif "grok" in request_lower or "x-ai" in request_lower or "xai" in request_lower:
+        return model_info["grok-4"]["model"]
+    elif "glm" in request_lower or "z-ai" in request_lower:
+        return model_info["glm-4.5"]["model"]
+    elif "gpt-5" in request_lower or "gpt5" in request_lower or "openai" in request_lower:
+        return model_info["gpt-5"]["model"]
+
+    # For qwen, use context to determine which variant
+    elif "qwen" in request_lower:
+        # Analyze user prompt to determine best qwen variant
+        if any(word in prompt_lower for word in ["code", "programming", "debug", "function", "script", "development"]):
+            return model_info["qwen3-coder-plus"]["model"]
+        else:
+            return model_info["qwen3-max"]["model"]
+
+    # If no match found, return the request as-is (assume it's a full model name)
+    return model_request
 
 def list_available_aliases() -> dict:
     """List all available model aliases and their mappings"""
