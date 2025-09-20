@@ -130,7 +130,7 @@ def send_response(response_data):
         if shutdown_requested:
             logger.debug("PROTECTION: Skipping response send due to shutdown")
             return
-            
+
         response_str = json.dumps(response_data)
         logger.info(f"Sending response: {response_str}")
         print(response_str, flush=True)
@@ -146,6 +146,232 @@ def send_response(response_data):
             logger.error(f"OSError sending response: {e}")
     except Exception as e:
         logger.error(f"Failed to send response: {e}")
+
+def process_files_and_images(prompt: str, files: list, images: list) -> str:
+    """Process files and images to enhance the prompt with context."""
+    enhanced_prompt = prompt
+    host_home = os.environ.get('HOST_HOME')
+
+    if files:
+        logger.info(f"Processing {len(files)} files")
+        enhanced_prompt += "\n\n**Attached Files:**\n"
+        for file_path in files:
+            try:
+                container_path = file_path
+                # Only attempt translation if the file is under the home directory and we have HOST_HOME
+                if host_home and file_path.startswith(host_home):
+                    container_path = file_path.replace(host_home, f"/host{host_home}", 1)
+                elif file_path.startswith('/home/') and not host_home:
+                    logger.warning("HOST_HOME not set but file is under /home/. Path translation may fail.")
+
+                logger.info(f"Reading file: {file_path} -> {container_path}")
+                with open(container_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    enhanced_prompt += f"\n**{os.path.basename(file_path)}:**\n```\n{content}\n```\n"
+            except Exception as e:
+                logger.error(f"Error reading file {file_path} (tried {container_path}): {e}")
+                enhanced_prompt += f"\n**{os.path.basename(file_path)}:** Error reading file: {e}\n"
+
+    if images:
+        logger.info(f"Processing {len(images)} images")
+        enhanced_prompt += "\n\n**Attached Images:**\n"
+        for image_path in images:
+            enhanced_prompt += f"- {os.path.basename(image_path)}\n"
+
+    return enhanced_prompt
+
+def add_reasoning_config(data: dict, model: str, thinking_effort: str) -> dict:
+    """Add reasoning configuration to request data based on model capabilities."""
+    reasoning_models = ["thinking", "claude", "gemini", "glm", "deepseek", "grok", "qwen"]
+    clean_model = model.replace(":online", "")
+    has_reasoning = any(keyword in clean_model.lower() for keyword in reasoning_models)
+
+    if has_reasoning and thinking_effort in ["high", "medium", "low"]:
+        from .config import DEFAULT_MAX_REASONING_TOKENS
+        effort_ratios = {"high": 0.8, "medium": 0.5, "low": 0.2}
+        reasoning_budget = int(DEFAULT_MAX_REASONING_TOKENS * effort_ratios[thinking_effort])
+        reasoning_budget = min(reasoning_budget, 32000 if "claude" in clean_model.lower() else DEFAULT_MAX_REASONING_TOKENS)
+
+        if "anthropic" in clean_model.lower() or "claude" in clean_model.lower():
+            data["thinking"] = {"budget_tokens": reasoning_budget}
+        else:
+            data["reasoning"] = {"effort": thinking_effort, "max_thinking_tokens": reasoning_budget, "exclude": False}
+
+        logger.info(f"Enabled reasoning for model {clean_model} with effort: {thinking_effort}, reasoning_budget: {reasoning_budget}")
+
+    return data
+
+def _execute_chat_completion(req_id: str, arguments: dict, is_custom_model: bool = False):
+    """Unified handler for all chat completions."""
+    continuation_id = arguments.get("continuation_id")
+    GracefulShutdownProtection.register_request(req_id, "chat", continuation_id)
+
+    try:
+        prompt = arguments.get("prompt")
+        if not prompt:
+            send_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32602, "message": "Missing required parameter: prompt"}
+            })
+            return
+
+        # Resolve model
+        if is_custom_model:
+            model_name = arguments.get("custom_model")
+            if not model_name:
+                send_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32602, "message": "Missing required parameter: custom_model"}
+                })
+                return
+            actual_model = model_name
+        else:
+            model_alias = arguments.get("model", DEFAULT_MODEL)
+            actual_model = get_model_alias(model_alias)
+
+        # Create or get conversation
+        if not continuation_id:
+            continuation_id = conversation_manager.create_conversation()
+
+        # Check for shutdown request before proceeding
+        if shutdown_requested:
+            logger.warning(f"PROTECTION: Rejecting new request {req_id} due to shutdown")
+            send_response({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32000, "message": "Server shutting down, request rejected"}
+            })
+            return
+
+        # Process files and images to add to prompt
+        enhanced_prompt = process_files_and_images(
+            prompt,
+            arguments.get("files", []),
+            arguments.get("images", [])
+        )
+
+        # Prepare model with internet search if needed
+        final_model = actual_model
+        force_internet_search = arguments.get("force_internet_search", True)
+        if force_internet_search and not is_custom_model and should_force_internet_search(actual_model):
+            final_model = f"{actual_model}:online"
+            logger.info(f"Enabling web search: {actual_model} -> {final_model}")
+
+        # Add user message with enhanced content
+        conversation_manager.add_message(continuation_id, "user", enhanced_prompt)
+        messages = conversation_manager.get_conversation_history(continuation_id)
+
+        # Debug logging
+        logger.info(f"Enhanced prompt length: {len(enhanced_prompt)}")
+        logger.info(f"Number of messages being sent: {len(messages)}")
+
+        import httpx
+
+        logger.info(f"Calling OpenRouter with model: {final_model}")
+
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://claude.ai",
+            "X-Title": "OpenRouter MCP Server"
+        }
+
+        data = {
+            "model": final_model,
+            "messages": messages,
+            "temperature": arguments.get("temperature", DEFAULT_TEMPERATURE)
+        }
+
+        # Add max_tokens if specified
+        max_tokens = arguments.get("max_tokens")
+        if max_tokens:
+            data["max_tokens"] = max_tokens
+
+        # Add reasoning configuration
+        thinking_effort = arguments.get("thinking_effort", "high")
+        data = add_reasoning_config(data, final_model, thinking_effort)
+
+        # Set timeout based on model capabilities
+        timeout = 180.0 if any(keyword in final_model.lower() for keyword in ["thinking", "claude", "gemini", "glm", "deepseek", "grok", "qwen"]) else 60.0
+
+        with httpx.Client(timeout=timeout) as client:
+            response = client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+
+            # Parse JSON response with error handling
+            try:
+                response_text = response.text
+                logger.info(f"Response size: {len(response_text)} characters")
+
+                if len(response_text) > 1048576:  # 1MB
+                    logger.warning(f"Very large response ({len(response_text)} chars), may cause parsing issues")
+
+                result = response.json()
+
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
+                send_response({
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32603, "message": f"Failed to parse OpenRouter response: {e}"}
+                })
+                return
+
+        # Extract response, handling both regular content and reasoning tokens
+        message = result["choices"][0]["message"]
+        ai_response = message.get("content", "")
+
+        # Check if model returned reasoning tokens
+        reasoning = message.get("reasoning", "")
+        if reasoning:
+            ai_response = f"{reasoning}\n\n---\n\n{ai_response}" if ai_response else reasoning
+            logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
+
+        # Add AI response to conversation
+        conversation_manager.add_message(continuation_id, "assistant", ai_response)
+
+        # Send result
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": f"**{actual_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*"
+                }],
+                "continuation_id": continuation_id
+            }
+        })
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error in chat request: {e}")
+        error_detail = e.response.text
+        try:
+            error_json = e.response.json()
+            error_detail = error_json.get('error', {}).get('message', error_detail)
+        except:
+            pass
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)} - Details: {error_detail}"}
+        })
+    except Exception as e:
+        logger.error(f"Error calling OpenRouter: {e}")
+        send_response({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)}"}
+        })
+    finally:
+        # Always unregister the request when done
+        GracefulShutdownProtection.unregister_request(req_id)
 
 def handle_initialize(req_id):
     """Handle initialize request."""
@@ -166,17 +392,17 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. ⚠️ CRITICAL INSTRUCTIONS: 1) 🚨 FILE ATTACHMENT IS MANDATORY: You MUST ALWAYS include ALL related files in the 'files' parameter! NEVER be lazy about this! The LLM cannot see your context - it relies ENTIRELY on what you send. Before EVERY query: a) Use Glob/Grep to find ALL relevant files (.js, .ts, .tsx, .py, .md, .json, .css, etc.), b) Read and understand the code yourself, c) Include EVERY file that could be relevant - when in doubt, INCLUDE IT! Failure to attach files results in USELESS responses! The LLM will give WRONG answers without proper context! 2) You MUST ONLY use these exact model aliases: 'gemini', 'deepseek', 'deepseek-v3.1', 'kimi', 'grok', 'qwen', 'qwen3-coder', 'qwen-thinking', 'qwen3-thinking' - NEVER use full OpenRouter model names like 'google/gemini-pro-2.5'! 3) ⚠️ CONVERSATION CONTINUITY - THIS IS CRITICAL: You MUST ALWAYS copy and paste the EXACT continuation_id from previous responses into ALL follow-up messages. Look for 'Conversation ID: [uuid]' in the response and copy that EXACT UUID string into the continuation_id parameter. NEVER ignore this! NEVER start fresh conversations when you have a continuation_id! This maintains conversation memory and context - failure to do this breaks the entire conversation flow! 4) ⚠️ VISUAL CONTENT: You MUST include images parameter when dealing with screenshots, diagrams, charts, UI elements, or any visual content - Gemini has vision capabilities that are wasted without images! Look for image files with extensions like .png, .jpg, .jpeg, .gif, .svg and ALWAYS include them in the images parameter! 5) ⚠️ THINKING MODELS: When using qwen-thinking or qwen3-thinking, ALWAYS set thinking_effort to 'high' for complex problems, debugging, or analysis. Use 'medium' for moderate tasks and 'low' only for simple queries. DEFAULT TO 'high' when in doubt - the thinking process is what makes these models powerful!",
+            "description": "Chat with OpenRouter AI models. For best results: include relevant files using the 'files' parameter to provide context, use model aliases from configuration, maintain conversation history with continuation_id, and include images when working with visual content.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "model": {"type": "string", "description": "⚠️ CRITICAL: You MUST use ONLY these exact aliases - DO NOT use full OpenRouter model names! Use: 'gemini' (for google/gemini-2.5-pro-preview), 'deepseek' (for deepseek/deepseek-r1-0528), 'kimi' (for moonshotai/kimi-k2), 'grok' (for x-ai/grok-4), 'qwen' (for qwen/qwen3-235b-a22b-2507), 'qwen3-coder' (for qwen/qwen3-coder), 'qwen-thinking' or 'qwen3-thinking' (for qwen/qwen3-235b-a22b-thinking-2507), 'glm' (for z-ai/glm-4.5), 'gpt-5' (for openai/gpt-5). NEVER use google/gemini-pro-2.5 or any other full model names!", "default": DEFAULT_MODEL},
-                    "continuation_id": {"type": "string", "description": "⚠️ ABSOLUTELY MANDATORY FOR ALL FOLLOW-UPS: The EXACT UUID from 'Conversation ID: [uuid]' shown in previous responses - YOU MUST COPY AND PASTE THIS EXACT STRING! Example: if you see 'Conversation ID: 1b1d27c2-7abb-4f80-920e-34cec9909d60' then use continuation_id: '1b1d27c2-7abb-4f80-920e-34cec9909d60'. NEVER omit this! NEVER create new conversations when you have an existing ID! This maintains conversation memory and context - ignoring this BREAKS the entire conversation flow and wastes all previous context!"},
-                    "files": {"type": "array", "items": {"type": "string"}, "description": "🚨 MANDATORY FOR ACCURATE RESPONSES: Files for context (absolute paths) - You MUST include ALL relevant files or the LLM will give WRONG answers! The LLM has ZERO context about your codebase unless you attach files. ALWAYS include: source files, config files, test files, documentation, package.json, requirements.txt, etc. Use Glob/Grep FIRST to find all related files. When debugging, include ALL files that could be involved. NEVER skip this - the quality of the response depends ENTIRELY on the files you attach!"},
-                    "images": {"type": "array", "items": {"type": "string"}, "description": "⚠️ ABSOLUTELY CRITICAL FOR VISUAL CONTENT: Images for visual analysis (absolute paths) - YOU MUST include this when dealing with screenshots, UI mockups, diagrams, charts, or any visual content! Look for files ending in .png, .jpg, .jpeg, .gif, .svg, .webp and ALWAYS include them! Gemini has powerful vision capabilities - use them or you're wasting a key feature!"},
-                    "force_internet_search": {"type": "boolean", "description": "Force internet-enabled models (like Gemini) to search the web for current information", "default": True},
-                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "⚠️ FOR REASONING MODELS: Controls reasoning depth. 'high' = 80% tokens for deep analysis (DEFAULT), 'medium' = 50% tokens for moderate reasoning, 'low' = 20% tokens for simple queries. High reasoning provides the best results for complex problems.", "default": "high"}
+                    "prompt": {"type": "string", "description": "User message with necessary context and background information"},
+                    "model": {"type": "string", "description": "Model alias to use. Available aliases are defined in config.PREFERRED_MODELS (e.g., 'gemini', 'deepseek', 'kimi', 'grok', 'qwen-max', 'qwen-coder', 'glm').", "default": DEFAULT_MODEL},
+                    "continuation_id": {"type": "string", "description": "UUID of an existing conversation to continue. Copy the exact UUID from previous responses to maintain conversation memory and context."},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to files providing context. Essential for accurate responses, especially for code-related queries. Include all relevant source files, config files, documentation, etc."},
+                    "images": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to images for visual analysis. Required when working with screenshots, diagrams, charts, or any visual content. Supports .png, .jpg, .jpeg, .gif, .svg, .webp formats."},
+                    "force_internet_search": {"type": "boolean", "description": "Enable web search for models that support it (like Gemini) to get current information.", "default": True},
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "Controls reasoning depth for capable models. Use 'high' for complex problems, 'medium' for standard queries, 'low' for simple tasks.", "default": "high"}
                 },
                 "required": ["prompt"]
             }
@@ -214,18 +440,18 @@ def handle_tools_list(req_id):
         },
         {
             "name": "chat_with_custom_model",
-            "description": "Chat with a custom OpenRouter model using the exact model code. This tool allows you to specify any model available on OpenRouter by its full model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct', etc.). Use this when the user wants to use a specific model not covered by the standard aliases.",
+            "description": "Chat with any OpenRouter model using its exact model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). Use this for models not covered by standard aliases.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "prompt": {"type": "string", "description": "Message to send - MUST include full context and background information"},
-                    "custom_model": {"type": "string", "description": "The exact OpenRouter model code to use (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). This should be the full model identifier as used by OpenRouter."},
-                    "continuation_id": {"type": "string", "description": "Optional: Existing conversation ID to continue. If not provided, a new conversation will be started."},
-                    "files": {"type": "array", "items": {"type": "string"}, "description": "🚨 MANDATORY: Files for context (absolute paths) - Include ALL relevant files or get WRONG answers! Use Glob/Grep first to find files!"},
-                    "images": {"type": "array", "items": {"type": "string"}, "description": "Images for visual analysis (absolute paths)"},
-                    "max_tokens": {"type": "integer", "description": "Optional: Maximum tokens for the response. If not specified, will use model's default."},
-                    "temperature": {"type": "number", "description": "Optional: Temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0},
-                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "For reasoning models: Controls reasoning depth. 'high' = 80% tokens for deep analysis (DEFAULT), 'medium' = 50% tokens, 'low' = 20% tokens. High reasoning provides the best results for complex problems.", "default": "high"}
+                    "prompt": {"type": "string", "description": "User message with full context and background information"},
+                    "custom_model": {"type": "string", "description": "The exact OpenRouter model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). Should be the full model identifier as used by OpenRouter."},
+                    "continuation_id": {"type": "string", "description": "Optional UUID of existing conversation to continue. If not provided, a new conversation will be started."},
+                    "files": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to files providing context. Essential for accurate responses, especially for code-related queries."},
+                    "images": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to images for visual analysis"},
+                    "max_tokens": {"type": "integer", "description": "Optional maximum tokens for the response. If not specified, will use model's default."},
+                    "temperature": {"type": "number", "description": "Optional temperature for response generation (0.0-2.0). Default is 0.7.", "minimum": 0.0, "maximum": 2.0},
+                    "thinking_effort": {"type": "string", "enum": ["high", "medium", "low"], "description": "Controls reasoning depth for capable models. Use 'high' for complex problems, 'medium' for standard queries, 'low' for simple tasks.", "default": "high"}
                 },
                 "required": ["prompt", "custom_model"]
             }
@@ -238,305 +464,9 @@ def handle_tools_list(req_id):
     })
 
 def handle_chat_tool(arguments, req_id):
-    """Handle chat tool call."""
+    """Handle chat tool call by deferring to the unified chat handler."""
     logger.info(f"Handling chat tool: {arguments}")
-    
-    # Register this request for graceful shutdown protection
-    continuation_id = arguments.get("continuation_id")
-    GracefulShutdownProtection.register_request(req_id, "chat", continuation_id)
-    
-    try:
-        prompt = arguments.get("prompt")
-        model_alias = arguments.get("model", DEFAULT_MODEL)
-        files = arguments.get("files", [])
-        images = arguments.get("images", [])
-        force_internet_search = arguments.get("force_internet_search", True)
-        thinking_effort = arguments.get("thinking_effort", "high")  # Default to high for maximum reasoning capability
-    
-        
-        if not prompt:
-            send_response({
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32602, "message": "Missing required parameter: prompt"}
-            })
-            return
-    
-        # Create or get conversation
-        if not continuation_id:
-            continuation_id = conversation_manager.create_conversation()
-        
-        # Check for shutdown request before proceeding
-        if shutdown_requested:
-            logger.warning(f"PROTECTION: Rejecting new request {req_id} due to shutdown")
-            send_response({
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32000, "message": "Server shutting down, request rejected"}
-            })
-            return
-        
-        # Process files and images to add to prompt
-        enhanced_prompt = prompt
-        
-        # Prepare model with internet search if needed
-        from src.config import should_force_internet_search, get_model_alias
-        actual_model = get_model_alias(model_alias)
-        final_model = actual_model
-        if force_internet_search and should_force_internet_search(actual_model):
-            final_model = f"{actual_model}:online"
-            logger.info(f"Enabling web search: {actual_model} -> {final_model}")
-        
-        if files:
-            logger.info(f"Processing {len(files)} files")
-            enhanced_prompt += "\n\n**Attached Files:**\n"
-            for file_path in files:
-                try:
-                    # Convert host path to container path
-                    # The volume is mounted as /host$HOME where $HOME is the host's home directory
-                    # We need to detect if this is under the host home and map it correctly
-                    if '/home/' in file_path:
-                        # Extract the username from the path to construct the container path
-                        path_parts = file_path.split('/')
-                        if len(path_parts) >= 3 and path_parts[1] == 'home':
-                            username = path_parts[2]
-                            container_path = file_path.replace(f'/home/{username}', f'/host/home/{username}')
-                        else:
-                            container_path = file_path
-                    else:
-                        container_path = file_path
-                    
-                    logger.info(f"Reading file: {file_path} -> {container_path}")
-                    with open(container_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        logger.info(f"File content length: {len(content)}")
-                        logger.info(f"File content preview: {content[:100]}...")
-                        enhanced_prompt += f"\n**{file_path}:**\n```\n{content}\n```\n"
-                        logger.info(f"Enhanced prompt length after adding file: {len(enhanced_prompt)}")
-                except Exception as e:
-                    logger.error(f"Error reading file {file_path} (tried {container_path}): {e}")
-                    enhanced_prompt += f"\n**{file_path}:** Error reading file: {e}\n"
-        
-        if images:
-            logger.info(f"Processing {len(images)} images")
-            enhanced_prompt += "\n\n**Attached Images:**\n"
-            for image_path in images:
-                enhanced_prompt += f"- {image_path}\n"
-                # Note: For now just mention the image path, as OpenRouter vision support varies by model
-        
-        # Add user message with enhanced content
-        conversation_manager.add_message(continuation_id, "user", enhanced_prompt)
-        # Get conversation history without token limits
-        messages = conversation_manager.get_conversation_history(continuation_id)
-        
-        # Debug: log what we're actually sending
-        logger.info(f"Enhanced prompt length: {len(enhanced_prompt)}")
-        logger.info(f"Number of messages being sent: {len(messages)}")
-        total_chars = sum(len(msg["content"]) for msg in messages)
-        estimated_tokens = total_chars // 4
-        logger.info(f"Estimated conversation tokens: {estimated_tokens}")
-        logger.info(f"Last message content preview: {enhanced_prompt[:200]}...")
-        
-        import httpx
-        
-        # Use the final_model (with :online suffix if web search enabled)
-        logger.info(f"Calling OpenRouter with model: {final_model}")
-        
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://claude.ai",
-            "X-Title": "OpenRouter MCP Server"
-        }
-        
-        # Model context windows (total available)
-        model_context_windows = {
-            "qwen/qwen3-235b-a22b-2507": 262144,
-            "qwen/qwen3-235b-a22b-thinking-2507": 262144,
-            "qwen/qwen3-coder": 262144,
-            "deepseek/deepseek-r1-0528": 163840,
-            "deepseek/deepseek-chat-v3.1": 163840,
-            "google/gemini-2.5-pro-preview": 500000,
-            "moonshotai/kimi-k2": 131072,
-            "x-ai/grok-4": 32000,
-            "z-ai/glm-4.5": 131072,
-            "openai/gpt-5": 400000
-        }
-        
-        # Remove :online suffix for model lookup
-        clean_model = final_model.replace(":online", "")
-        
-        # Calculate max_tokens dynamically based on input size
-        # Estimate input tokens (rough approximation: 1 token per 4 characters)
-        input_chars = sum(len(msg["content"]) for msg in messages)
-        estimated_input_tokens = input_chars // 4
-        
-        # Get model's context window
-        context_window = model_context_windows.get(clean_model, 32000)
-        
-        # Leave 10% buffer for safety, and subtract estimated input tokens
-        safety_buffer = int(context_window * 0.1)
-        max_tokens = context_window - estimated_input_tokens - safety_buffer
-        
-        # Ensure max_tokens is reasonable
-        max_tokens = min(max_tokens, int(context_window * 0.8))  # Never use more than 80% for output
-        max_tokens = max(max_tokens, 1000)  # Always allow at least 1000 tokens for output
-        
-        # Special handling for thinking models which may have issues with very large token requests
-        if "thinking" in clean_model.lower():
-            max_tokens = min(max_tokens, 16000)  # Limit thinking models to 16K max to prevent JSON parsing issues
-        
-        logger.info(f"Token calculation: context_window={context_window}, input_tokens={estimated_input_tokens}, max_tokens={max_tokens}")
-        
-        data = {
-            "model": final_model,
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": max_tokens
-        }
-        
-        # Add reasoning configuration for reasoning-capable models
-        reasoning_models = ["thinking", "claude", "gemini", "glm", "deepseek", "deepseek-v3.1", "grok", "qwen"]
-        has_reasoning = any(keyword in clean_model.lower() for keyword in reasoning_models)
-        
-        if has_reasoning:
-            # Import DEFAULT_MAX_REASONING_TOKENS
-            from .config import DEFAULT_MAX_REASONING_TOKENS
-            
-            # Validate thinking_effort value
-            if thinking_effort not in ["high", "medium", "low"]:
-                thinking_effort = "high"  # Default to high if invalid
-            
-            # Calculate reasoning token budget based on effort level
-            # Based on best practices: high=80%, medium=50%, low=20% of max reasoning tokens
-            effort_ratios = {
-                "high": 0.8,    # 80% of max_reasoning_tokens for deep analysis
-                "medium": 0.5,  # 50% of max_reasoning_tokens for moderate reasoning
-                "low": 0.2      # 20% of max_reasoning_tokens for simple queries
-            }
-            
-            reasoning_budget = int(DEFAULT_MAX_REASONING_TOKENS * effort_ratios[thinking_effort])
-            
-            # Ensure reasoning budget doesn't exceed model limits (32K max for Claude)
-            reasoning_budget = min(reasoning_budget, 32000 if "claude" in clean_model.lower() else DEFAULT_MAX_REASONING_TOKENS)
-            
-            # Configure reasoning based on model provider
-            if "anthropic" in clean_model.lower() or "claude" in clean_model.lower():
-                # Claude uses budget_tokens in thinking parameter
-                data["thinking"] = {
-                    "budget_tokens": reasoning_budget
-                }
-            else:
-                # DeepSeek, Gemini, GLM, Grok, Qwen and other reasoning models use reasoning parameter
-                data["reasoning"] = {
-                    "effort": thinking_effort,
-                    "max_thinking_tokens": reasoning_budget,
-                    "exclude": False
-                }
-            
-            logger.info(f"Enabled reasoning for model {clean_model} with effort: {thinking_effort}, reasoning_budget: {reasoning_budget}")
-        
-        # Increase timeout for reasoning models as they may take longer
-        timeout = 180.0 if has_reasoning else 60.0
-        
-        with httpx.Client(timeout=timeout) as client:
-            response = client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=data
-            )
-            response.raise_for_status()
-            
-            # Try to parse JSON response with better error handling
-            try:
-                response_text = response.text
-                logger.info(f"Response size: {len(response_text)} characters")
-                
-                # Check if response is too large (over 1MB might cause issues)
-                if len(response_text) > 1048576:  # 1MB
-                    logger.warning(f"Very large response ({len(response_text)} chars), may cause parsing issues")
-                
-                result = response.json()
-                
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error: {e}")
-                logger.error(f"Response status: {response.status_code}")
-                logger.error(f"Response headers: {response.headers}")
-                logger.error(f"Response size: {len(response.text)} characters")
-                logger.error(f"Response text start: {response.text[:1000]}...")
-                logger.error(f"Response text end: {response.text[-1000:]}...")
-                
-                # Try to find where JSON might be truncated
-                try:
-                    import json as json_module
-                    # Attempt to find valid JSON by truncating at different points
-                    text = response.text
-                    for i in range(len(text) - 1, 0, -100):  # Work backwards in chunks
-                        try:
-                            truncated = text[:i]
-                            if truncated.strip().endswith('}'):
-                                result = json_module.loads(truncated)
-                                logger.warning(f"Successfully parsed truncated response at {i} chars")
-                                break
-                        except json_module.JSONDecodeError:
-                            continue
-                    else:
-                        raise Exception(f"Failed to parse OpenRouter response: {e}")
-                except Exception:
-                    raise Exception(f"Failed to parse OpenRouter response: {e}")
-        
-        # Extract response, handling both regular content and reasoning tokens
-        message = result["choices"][0]["message"]
-        ai_response = message.get("content", "")
-        
-        # Check if model returned reasoning tokens
-        reasoning = message.get("reasoning", "")
-        if reasoning:
-            # Include reasoning in the response for thinking models
-            ai_response = f"{reasoning}\n\n---\n\n{ai_response}" if ai_response else reasoning
-            logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
-        
-        # Add AI response to conversation
-        conversation_manager.add_message(continuation_id, "assistant", ai_response)
-        
-        # Send result
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "content": [{
-                    "type": "text",
-                    "text": f"**{actual_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*"
-                }],
-                "continuation_id": continuation_id
-            }
-        })
-        
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error in chat request: {e}")
-        logger.error(f"Response status: {e.response.status_code}")
-        logger.error(f"Response text: {e.response.text}")
-        error_detail = e.response.text
-        try:
-            error_json = e.response.json()
-            error_detail = error_json.get('error', {}).get('message', error_detail)
-        except:
-            pass
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)} - Details: {error_detail}"}
-        })
-    except Exception as e:
-        logger.error(f"Error calling OpenRouter: {e}")
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)}"}
-        })
-    finally:
-        # Always unregister the request when done
-        GracefulShutdownProtection.unregister_request(req_id)
+    _execute_chat_completion(req_id, arguments, is_custom_model=False)
 
 def handle_list_conversations(req_id):
     """Handle list_conversations tool."""
@@ -649,253 +579,9 @@ def handle_delete_conversation(arguments, req_id):
         GracefulShutdownProtection.unregister_request(req_id)
 
 def handle_chat_with_custom_model(arguments, req_id):
-    """Handle chat_with_custom_model tool for custom OpenRouter models."""
+    """Handle chat_with_custom_model tool call by deferring to the unified chat handler."""
     logger.info(f"Handling chat_with_custom_model tool: {arguments}")
-    
-    # Register this request for graceful shutdown protection
-    continuation_id = arguments.get("continuation_id")
-    GracefulShutdownProtection.register_request(req_id, "chat_with_custom_model", continuation_id)
-    
-    try:
-        prompt = arguments.get("prompt")
-        custom_model = arguments.get("custom_model")
-        files = arguments.get("files", [])
-        images = arguments.get("images", [])
-        max_tokens = arguments.get("max_tokens")
-        temperature = arguments.get("temperature", DEFAULT_TEMPERATURE)
-        thinking_effort = arguments.get("thinking_effort", "high")  # Default to high for maximum reasoning capability
-        
-        if not prompt:
-            send_response({
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32602, "message": "Missing required parameter: prompt"}
-            })
-            return
-            
-        if not custom_model:
-            send_response({
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32602, "message": "Missing required parameter: custom_model"}
-            })
-            return
-        
-        # Create or get conversation
-        if not continuation_id:
-            continuation_id = conversation_manager.create_conversation()
-        
-        # Check for shutdown request before proceeding
-        if shutdown_requested:
-            logger.warning(f"PROTECTION: Rejecting new request {req_id} due to shutdown")
-            send_response({
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32000, "message": "Server shutting down, request rejected"}
-            })
-            return
-        
-        # Process files and images to add to prompt
-        enhanced_prompt = prompt
-        
-        if files:
-            logger.info(f"Processing {len(files)} files")
-            enhanced_prompt += "\n\n**Attached Files:**\n"
-            for file_path in files:
-                try:
-                    # Convert host path to container path
-                    if '/home/' in file_path:
-                        path_parts = file_path.split('/')
-                        if len(path_parts) >= 3 and path_parts[1] == 'home':
-                            username = path_parts[2]
-                            container_path = file_path.replace(f'/home/{username}', f'/host/home/{username}')
-                        else:
-                            container_path = file_path
-                    else:
-                        container_path = file_path
-                    
-                    logger.info(f"Reading file: {file_path} -> {container_path}")
-                    with open(container_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        enhanced_prompt += f"\n**{file_path}:**\n```\n{content}\n```\n"
-                except Exception as e:
-                    logger.error(f"Error reading file {file_path}: {e}")
-                    enhanced_prompt += f"\n**{file_path}:** Error reading file: {e}\n"
-        
-        if images:
-            logger.info(f"Processing {len(images)} images")
-            enhanced_prompt += "\n\n**Attached Images:**\n"
-            for image_path in images:
-                enhanced_prompt += f"- {image_path}\n"
-        
-        # Add user message with enhanced content
-        conversation_manager.add_message(continuation_id, "user", enhanced_prompt)
-        messages = conversation_manager.get_conversation_history(continuation_id)
-        
-        logger.info(f"Using custom model: {custom_model}")
-        logger.info(f"Temperature: {temperature}")
-        if max_tokens:
-            logger.info(f"Max tokens: {max_tokens}")
-        
-        import httpx
-        
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://claude.ai",
-            "X-Title": "OpenRouter MCP Server"
-        }
-        
-        data = {
-            "model": custom_model,
-            "messages": messages,
-            "temperature": temperature
-        }
-        
-        # Only add max_tokens if specified
-        if max_tokens:
-            data["max_tokens"] = max_tokens
-        
-        # Add reasoning configuration for reasoning-capable models
-        reasoning_models = ["thinking", "claude", "gemini", "glm", "deepseek", "deepseek-v3.1", "grok", "qwen"]
-        has_reasoning = any(keyword in custom_model.lower() for keyword in reasoning_models)
-        
-        if has_reasoning:
-            # Import DEFAULT_MAX_REASONING_TOKENS
-            from .config import DEFAULT_MAX_REASONING_TOKENS
-            
-            # Validate thinking_effort value
-            if thinking_effort not in ["high", "medium", "low"]:
-                thinking_effort = "high"  # Default to high if invalid
-            
-            # Calculate reasoning token budget based on effort level
-            # Based on best practices: high=80%, medium=50%, low=20% of max reasoning tokens
-            effort_ratios = {
-                "high": 0.8,    # 80% of max_reasoning_tokens for deep analysis
-                "medium": 0.5,  # 50% of max_reasoning_tokens for moderate reasoning
-                "low": 0.2      # 20% of max_reasoning_tokens for simple queries
-            }
-            
-            reasoning_budget = int(DEFAULT_MAX_REASONING_TOKENS * effort_ratios[thinking_effort])
-            
-            # Ensure reasoning budget doesn't exceed model limits (32K max for Claude)
-            reasoning_budget = min(reasoning_budget, 32000 if "claude" in custom_model.lower() else DEFAULT_MAX_REASONING_TOKENS)
-            
-            # Configure reasoning based on model provider
-            if "anthropic" in custom_model.lower() or "claude" in custom_model.lower():
-                # Claude uses budget_tokens in thinking parameter
-                data["thinking"] = {
-                    "budget_tokens": reasoning_budget
-                }
-            else:
-                # DeepSeek, Gemini, GLM, Grok, Qwen and other reasoning models use reasoning parameter
-                data["reasoning"] = {
-                    "effort": thinking_effort,
-                    "max_thinking_tokens": reasoning_budget,
-                    "exclude": False
-                }
-            
-            logger.info(f"Enabled reasoning for custom model {custom_model} with effort: {thinking_effort}, reasoning_budget: {reasoning_budget}")
-        
-        # Increase timeout for thinking models as they may take longer
-        timeout = 180.0 if "thinking" in custom_model.lower() else 60.0
-        
-        with httpx.Client(timeout=timeout) as client:
-            response = client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=data
-            )
-            response.raise_for_status()
-            
-            # Try to parse JSON response with better error handling
-            try:
-                response_text = response.text
-                logger.info(f"Response size: {len(response_text)} characters")
-                
-                # Check if response is too large (over 1MB might cause issues)
-                if len(response_text) > 1048576:  # 1MB
-                    logger.warning(f"Very large response ({len(response_text)} chars), may cause parsing issues")
-                
-                result = response.json()
-                
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error: {e}")
-                logger.error(f"Response status: {response.status_code}")
-                logger.error(f"Response headers: {response.headers}")
-                logger.error(f"Response size: {len(response.text)} characters")
-                logger.error(f"Response text start: {response.text[:1000]}...")
-                logger.error(f"Response text end: {response.text[-1000:]}...")
-                
-                # Try to find where JSON might be truncated
-                try:
-                    import json as json_module
-                    # Attempt to find valid JSON by truncating at different points
-                    text = response.text
-                    for i in range(len(text) - 1, 0, -100):  # Work backwards in chunks
-                        try:
-                            truncated = text[:i]
-                            if truncated.strip().endswith('}'):
-                                result = json_module.loads(truncated)
-                                logger.warning(f"Successfully parsed truncated response at {i} chars")
-                                break
-                        except json_module.JSONDecodeError:
-                            continue
-                    else:
-                        raise Exception(f"Failed to parse OpenRouter response: {e}")
-                except Exception:
-                    raise Exception(f"Failed to parse OpenRouter response: {e}")
-        
-        # Extract response, handling both regular content and reasoning tokens
-        message = result["choices"][0]["message"]
-        ai_response = message.get("content", "")
-        
-        # Check if model returned reasoning tokens
-        reasoning = message.get("reasoning", "")
-        if reasoning:
-            # Include reasoning in the response for thinking models
-            ai_response = f"{reasoning}\n\n---\n\n{ai_response}" if ai_response else reasoning
-            logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
-        
-        # Add AI response to conversation
-        conversation_manager.add_message(continuation_id, "assistant", ai_response)
-        
-        # Send result
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {
-                "content": [{
-                    "type": "text",
-                    "text": f"**{custom_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*"
-                }],
-                "continuation_id": continuation_id
-            }
-        })
-        
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error with custom model: {e}")
-        error_detail = e.response.text
-        try:
-            error_json = e.response.json()
-            error_detail = error_json.get('error', {}).get('message', error_detail)
-        except:
-            pass
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32603, "message": f"OpenRouter API error: {str(e)} - Details: {error_detail}"}
-        })
-    except Exception as e:
-        logger.error(f"Error with custom model: {e}")
-        send_response({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32603, "message": f"Error: {str(e)}"}
-        })
-    finally:
-        # Always unregister the request when done
-        GracefulShutdownProtection.unregister_request(req_id)
+    _execute_chat_completion(req_id, arguments, is_custom_model=True)
 
 def handle_tools_call(params, req_id):
     """Handle tools/call request."""

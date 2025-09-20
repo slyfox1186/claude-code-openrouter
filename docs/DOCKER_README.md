@@ -167,23 +167,31 @@ First, make sure your Docker image is built:
 
 ### Step 2: Add MCP Server to Claude Code
 
-#### Method 1: Using Environment Variable (Recommended)
+#### Recommended Method: Use the Helper Script
 
 ```bash
 # Navigate to the project directory
 cd /path/to/openrouter-connect
 
-# Method A: Source the .env file directly
-source .env
-claude mcp add openrouter-docker -s user -- docker run -i --rm -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -v $HOME:"/host$HOME":ro openrouter:latest
+# Run the automated setup script
+./add_mcp.sh
 ```
 
-**Alternative if sourcing doesn't work:**
+This script automatically:
+- Validates your `.env` file and API key
+- Starts the Docker container if needed
+- Registers the MCP server with Claude Code
+- Provides clear status messages throughout the process
+
+#### Manual Method (Alternative)
+
+If you prefer manual setup:
 ```bash
-# Method B: Manual extraction (more reliable)
-export OPENROUTER_API_KEY=$(grep "^OPENROUTER_API_KEY=" .env | cut -d'=' -f2- | tr -d '"'"'")
-echo "API Key: $OPENROUTER_API_KEY"  # Verify it's not empty
-claude mcp add openrouter-docker -s user -- docker run -i --rm -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" -v $HOME:"/host$HOME":ro openrouter:latest
+# Ensure container is running
+python3 tools/docker_manager.py start
+
+# Add MCP server
+claude mcp add openrouter-docker -s user -- docker exec -i openrouter python3 -m src.server
 ```
 
 #### Method 2: Direct API Key (Replace with your actual key)
