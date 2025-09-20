@@ -1,6 +1,6 @@
 services:
   openrouter:
-    build: 
+    build:
       context: ..
       dockerfile: docker/Dockerfile
     image: openrouter:latest
@@ -10,6 +10,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - COMPOSE_BAKE=true
+      - HOST_HOME=${HOME}
     volumes:
       # Mount user home directory for file access
       - ${HOME}:/host${HOME}:ro
@@ -18,4 +19,3 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
-    command: ["python3", "-m", "src.server"]
