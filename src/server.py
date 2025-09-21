@@ -392,12 +392,12 @@ def handle_tools_list(req_id):
     tools = [
         {
             "name": "chat",
-            "description": "Chat with OpenRouter AI models. For best results: include relevant files using the 'files' parameter to provide context, use model aliases from configuration, maintain conversation history with continuation_id, and include images when working with visual content.",
+            "description": "**PRIMARY TOOL** - Chat with OpenRouter AI models using intelligent model aliases. This is the DEFAULT tool for all standard model requests. Uses smart model resolution with aliases like 'gemini', 'deepseek', 'kimi', 'grok', 'qwen-max', 'qwen-coder', 'glm' that automatically map to the best available models. For best results: include relevant files using the 'files' parameter to provide context, maintain conversation history with continuation_id, and include images when working with visual content.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "User message with necessary context and background information"},
-                    "model": {"type": "string", "description": "Model alias to use. Available aliases are defined in config.PREFERRED_MODELS (e.g., 'gemini', 'deepseek', 'kimi', 'grok', 'qwen-max', 'qwen-coder', 'glm').", "default": DEFAULT_MODEL},
+                    "model": {"type": "string", "description": "Model alias to use. PREFERRED ALIASES: 'gemini' (Google Gemini 2.5 Pro), 'deepseek' (DeepSeek R1), 'deepseek-v3.1' (DeepSeek Chat v3.1), 'kimi' (Kimi K2), 'grok' (Grok 4), 'qwen-max' (Qwen3 Max), 'qwen-coder' (Qwen3 Coder Plus), 'glm' (GLM 4.5), 'gpt-5' (OpenAI GPT-5). These aliases automatically resolve to the correct OpenRouter model codes.", "default": DEFAULT_MODEL},
                     "continuation_id": {"type": "string", "description": "UUID of an existing conversation to continue. Copy the exact UUID from previous responses to maintain conversation memory and context."},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to files providing context. Essential for accurate responses, especially for code-related queries. Include all relevant source files, config files, documentation, etc."},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to images for visual analysis. Required when working with screenshots, diagrams, charts, or any visual content. Supports .png, .jpg, .jpeg, .gif, .svg, .webp formats."},
@@ -440,12 +440,12 @@ def handle_tools_list(req_id):
         },
         {
             "name": "chat_with_custom_model",
-            "description": "Chat with any OpenRouter model using its exact model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). Use this for models not covered by standard aliases.",
+            "description": "**ADVANCED TOOL - USE ONLY WHEN NEEDED** - Chat with OpenRouter models using exact model codes. WARNING: Only use this tool when you need a specific model code that is NOT available in the standard aliases (gemini, deepseek, kimi, grok, qwen-max, qwen-coder, glm, gpt-5). For 99% of requests, use the 'chat' tool instead. This tool bypasses intelligent model resolution and requires exact OpenRouter model codes like 'anthropic/claude-3-opus' or 'meta-llama/llama-3.3-70b-instruct'.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "prompt": {"type": "string", "description": "User message with full context and background information"},
-                    "custom_model": {"type": "string", "description": "The exact OpenRouter model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). Should be the full model identifier as used by OpenRouter."},
+                    "custom_model": {"type": "string", "description": "The exact OpenRouter model code (e.g., 'anthropic/claude-3-opus', 'meta-llama/llama-3.3-70b-instruct'). MUST be the full model identifier as used by OpenRouter. Do NOT use aliases like 'gemini' here - use the 'chat' tool for aliases."},
                     "continuation_id": {"type": "string", "description": "Optional UUID of existing conversation to continue. If not provided, a new conversation will be started."},
                     "files": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to files providing context. Essential for accurate responses, especially for code-related queries."},
                     "images": {"type": "array", "items": {"type": "string"}, "description": "Absolute paths to images for visual analysis"},
