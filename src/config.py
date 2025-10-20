@@ -39,16 +39,16 @@ MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
 
 # OpenRouter-specific model configurations
 PREFERRED_MODELS = {
-    "gemini-2.5-pro": "google/gemini-2.5-pro-preview",
-    "gemini-pro": "google/gemini-2.5-pro-preview",
+    "gemini-2.5-pro": "google/gemini-2.5-pro",
+    "gemini-pro": "google/gemini-2.5-pro",
     "deepseek-r1": "deepseek/deepseek-r1-0528",
     "deepseek": "deepseek/deepseek-r1-0528",
     "deepseek-v3.1": "deepseek/deepseek-chat-v3.1",
     "deepseek-chat-v3": "deepseek/deepseek-chat-v3.1",
-    "kimi-k2": "moonshotai/kimi-k2",
-    "kimi": "moonshotai/kimi-k2",
-    "grok-4": "x-ai/grok-4",
-    "grok": "x-ai/grok-4",
+    "kimi-k2": "moonshotai/kimi-k2-0905",
+    "kimi": "moonshotai/kimi-k2-0905",
+    "grok-4": "x-ai/grok-code-fast-1",
+    "grok": "x-ai/grok-code-fast-1",
     "qwen3-max": "qwen/qwen3-max",
     "qwen-max": "qwen/qwen3-max",
     "qwen3-coder-plus": "qwen/qwen3-coder-plus",
@@ -62,10 +62,10 @@ PREFERRED_MODELS = {
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
-    "vision": ["google/gemini-2.5-pro-preview", "openai/gpt-5"],
-    "function_calling": ["google/gemini-2.5-pro-preview", "openai/gpt-5"],
-    "large_context": ["deepseek/deepseek-r1-0528", "deepseek/deepseek-chat-v3.1", "google/gemini-2.5-pro-preview", "moonshotai/kimi-k2", "x-ai/grok-4", "qwen/qwen3-max", "qwen/qwen3-coder-plus", "z-ai/glm-4.5", "openai/gpt-5"],
-    "internet_access": ["google/gemini-2.5-pro-preview"],
+    "vision": ["google/gemini-2.5-pro", "openai/gpt-5"],
+    "function_calling": ["google/gemini-2.5-pro", "openai/gpt-5"],
+    "large_context": ["deepseek/deepseek-r1-0528", "deepseek/deepseek-chat-v3.1", "google/gemini-2.5-pro", "moonshotai/kimi-k2-0905", "x-ai/grok-code-fast-1", "qwen/qwen3-max", "qwen/qwen3-coder-plus", "z-ai/glm-4.5", "openai/gpt-5"],
+    "internet_access": ["google/gemini-2.5-pro"],
 }
 
 def get_config() -> Dict[str, Any]:
@@ -138,7 +138,7 @@ def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> s
     # Model capabilities for intelligent selection
     model_info = {
         "gemini-2.5-pro": {
-            "model": "google/gemini-2.5-pro-preview",
+            "model": "google/gemini-2.5-pro",
             "strengths": "vision, web search, general reasoning, large context (1M+ tokens)",
             "best_for": "image analysis, current information, research, general tasks"
         },
@@ -153,14 +153,14 @@ def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> s
             "best_for": "general chat, latest features, large context tasks"
         },
         "kimi-k2": {
-            "model": "moonshotai/kimi-k2",
+            "model": "moonshotai/kimi-k2-0905",
             "strengths": "advanced reasoning, programming, large context",
             "best_for": "programming tasks, code analysis, advanced reasoning"
         },
         "grok-4": {
-            "model": "x-ai/grok-4",
-            "strengths": "creative thinking, analytical tasks, general intelligence",
-            "best_for": "creative solutions, brainstorming, analytical tasks"
+            "model": "x-ai/grok-code-fast-1",
+            "strengths": "fast code generation, programming tasks, technical solutions",
+            "best_for": "code generation, debugging, programming assistance, technical tasks"
         },
         "qwen3-max": {
             "model": "qwen/qwen3-max",

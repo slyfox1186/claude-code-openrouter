@@ -232,7 +232,7 @@ Just use simple names:
 - `deepseek` → DeepSeek R1 (reasoning & analysis)
 - `deepseek-v3.1` → DeepSeek Chat v3.1 (latest version with 163K context)
 - `kimi` → Moonshot Kimi K2 (advanced reasoning)
-- `grok` → X.AI Grok 4 (creative & analytical)
+- `grok` → X.AI Grok Code Fast 1 (fast code generation & programming)
 - `gpt-5` → OpenAI GPT-5 (latest flagship model with 400K context)
 - Plus 400+ other models available by full name
 
