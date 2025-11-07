@@ -1,6 +1,7 @@
 """
 Configuration management for OpenRouter MCP Server
 """
+
 import os
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
@@ -17,10 +18,12 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 # Default model settings
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "z-ai/glm-4.5")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "moonshotai/kimi-k2-thinking")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
 DEFAULT_MAX_TOKENS = int(os.getenv("DEFAULT_MAX_TOKENS", "8192"))
-DEFAULT_MAX_REASONING_TOKENS = int(os.getenv("DEFAULT_MAX_REASONING_TOKENS", "16384"))  # Max thinking/reasoning tokens
+DEFAULT_MAX_REASONING_TOKENS = int(
+    os.getenv("DEFAULT_MAX_REASONING_TOKENS", "16384")
+)  # Max thinking/reasoning tokens
 
 # Tool configuration
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
@@ -54,19 +57,30 @@ PREFERRED_MODELS = {
     "qwen3-coder-plus": "qwen/qwen3-coder-plus",
     "qwen3-coder": "qwen/qwen3-coder-plus",
     "qwen-coder": "qwen/qwen3-coder-plus",
-    "glm-4.5": "z-ai/glm-4.5",
-    "glm": "z-ai/glm-4.5",
+    "glm-4.6": "z-ai/glm-4.6",
+    "glm": "z-ai/glm-4.6",
     "gpt-5": "openai/gpt-5",
-    "openai-gpt-5": "openai/gpt-5"
+    "openai-gpt-5": "openai/gpt-5",
 }
 
 # Model capabilities configuration
 MODEL_CAPABILITIES = {
     "vision": ["google/gemini-2.5-pro", "openai/gpt-5"],
     "function_calling": ["google/gemini-2.5-pro", "openai/gpt-5"],
-    "large_context": ["deepseek/deepseek-r1-0528", "deepseek/deepseek-chat-v3.1", "google/gemini-2.5-pro", "moonshotai/kimi-k2-0905", "x-ai/grok-code-fast-1", "qwen/qwen3-max", "qwen/qwen3-coder-plus", "z-ai/glm-4.5", "openai/gpt-5"],
+    "large_context": [
+        "deepseek/deepseek-r1-0528",
+        "deepseek/deepseek-chat-v3.1",
+        "google/gemini-2.5-pro",
+        "moonshotai/kimi-k2-0905",
+        "x-ai/grok-code-fast-1",
+        "qwen/qwen3-max",
+        "qwen/qwen3-coder-plus",
+        "z-ai/glm-4.6",
+        "openai/gpt-5",
+    ],
     "internet_access": ["google/gemini-2.5-pro"],
 }
+
 
 def get_config() -> Dict[str, Any]:
     """Get current configuration as dictionary"""
@@ -100,21 +114,23 @@ def get_config() -> Dict[str, Any]:
         },
     }
 
+
 def validate_config() -> bool:
     """Validate configuration and return True if valid"""
     if not OPENROUTER_API_KEY:
         print("ERROR: OPENROUTER_API_KEY is required")
         return False
-    
+
     if DEFAULT_TEMPERATURE < 0 or DEFAULT_TEMPERATURE > 2:
         print("ERROR: DEFAULT_TEMPERATURE must be between 0 and 2")
         return False
-    
+
     if DEFAULT_MAX_TOKENS < 1:
         print("ERROR: DEFAULT_MAX_TOKENS must be positive")
         return False
-    
+
     return True
+
 
 def get_model_alias(model_name: str, user_prompt: str = "") -> str:
     """Get the actual OpenRouter model name using intelligent LLM-based selection"""
@@ -132,6 +148,7 @@ def get_model_alias(model_name: str, user_prompt: str = "") -> str:
     # Use LLM intelligence to determine the best model based on user query
     return _intelligent_model_selection(model_name, user_prompt)
 
+
 def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> str:
     """Use LLM intelligence to select the best model based on context"""
 
@@ -140,48 +157,48 @@ def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> s
         "gemini-2.5-pro": {
             "model": "google/gemini-2.5-pro",
             "strengths": "vision, web search, general reasoning, large context (1M+ tokens)",
-            "best_for": "image analysis, current information, research, general tasks"
+            "best_for": "image analysis, current information, research, general tasks",
         },
         "deepseek-r1": {
             "model": "deepseek/deepseek-r1-0528",
             "strengths": "advanced reasoning, logical analysis, problem solving",
-            "best_for": "complex reasoning, mathematical problems, logical analysis"
+            "best_for": "complex reasoning, mathematical problems, logical analysis",
         },
         "deepseek-v3.1": {
             "model": "deepseek/deepseek-chat-v3.1",
             "strengths": "latest version with 163K context, advanced chat capabilities",
-            "best_for": "general chat, latest features, large context tasks"
+            "best_for": "general chat, latest features, large context tasks",
         },
         "kimi-k2": {
             "model": "moonshotai/kimi-k2-0905",
             "strengths": "advanced reasoning, programming, large context",
-            "best_for": "programming tasks, code analysis, advanced reasoning"
+            "best_for": "programming tasks, code analysis, advanced reasoning",
         },
         "grok-4": {
             "model": "x-ai/grok-code-fast-1",
             "strengths": "fast code generation, programming tasks, technical solutions",
-            "best_for": "code generation, debugging, programming assistance, technical tasks"
+            "best_for": "code generation, debugging, programming assistance, technical tasks",
         },
         "qwen3-max": {
             "model": "qwen/qwen3-max",
             "strengths": "large context (128K), general reasoning, multilingual",
-            "best_for": "large document analysis, general tasks, multilingual content"
+            "best_for": "large document analysis, general tasks, multilingual content",
         },
         "qwen3-coder-plus": {
             "model": "qwen/qwen3-coder-plus",
             "strengths": "coding, programming, technical tasks (32K context)",
-            "best_for": "code generation, debugging, programming assistance"
+            "best_for": "code generation, debugging, programming assistance",
         },
-        "glm-4.5": {
-            "model": "z-ai/glm-4.5",
+        "glm-4.6": {
+            "model": "z-ai/glm-4.6",
             "strengths": "balanced performance, general tasks, good default choice",
-            "best_for": "general purpose tasks, balanced performance"
+            "best_for": "general purpose tasks, balanced performance",
         },
         "gpt-5": {
             "model": "openai/gpt-5",
             "strengths": "flagship model with 400K context, latest capabilities",
-            "best_for": "cutting-edge performance, large context tasks, latest features"
-        }
+            "best_for": "cutting-edge performance, large context tasks, latest features",
+        },
     }
 
     # Simple intelligent matching based on request context
@@ -202,14 +219,26 @@ def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> s
     elif "grok" in request_lower or "x-ai" in request_lower or "xai" in request_lower:
         return model_info["grok-4"]["model"]
     elif "glm" in request_lower or "z-ai" in request_lower:
-        return model_info["glm-4.5"]["model"]
-    elif "gpt-5" in request_lower or "gpt5" in request_lower or "openai" in request_lower:
+        return model_info["glm-4.6"]["model"]
+    elif (
+        "gpt-5" in request_lower or "gpt5" in request_lower or "openai" in request_lower
+    ):
         return model_info["gpt-5"]["model"]
 
     # For qwen, use context to determine which variant
     elif "qwen" in request_lower:
         # Analyze user prompt to determine best qwen variant
-        if any(word in prompt_lower for word in ["code", "programming", "debug", "function", "script", "development"]):
+        if any(
+            word in prompt_lower
+            for word in [
+                "code",
+                "programming",
+                "debug",
+                "function",
+                "script",
+                "development",
+            ]
+        ):
             return model_info["qwen3-coder-plus"]["model"]
         else:
             return model_info["qwen3-max"]["model"]
@@ -217,28 +246,32 @@ def _intelligent_model_selection(model_request: str, user_prompt: str = "") -> s
     # If no match found, return the request as-is (assume it's a full model name)
     return model_request
 
+
 def list_available_aliases() -> dict:
     """List all available model aliases and their mappings"""
     return PREFERRED_MODELS.copy()
+
 
 def suggest_model_alias(partial_name: str) -> list:
     """Suggest model aliases based on partial input"""
     if not partial_name:
         return []
-    
+
     partial_lower = partial_name.lower()
     suggestions = []
-    
+
     for alias in PREFERRED_MODELS.keys():
         if partial_lower in alias.lower():
             suggestions.append(alias)
-    
+
     return sorted(suggestions)
+
 
 def has_capability(model_name: str, capability: str) -> bool:
     """Check if a model has a specific capability"""
     actual_model = get_model_alias(model_name)
     return actual_model in MODEL_CAPABILITIES.get(capability, [])
+
 
 def should_force_internet_search(model_name: str) -> bool:
     """Check if we should force internet search for this model"""

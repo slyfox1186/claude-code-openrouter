@@ -46,7 +46,7 @@ OPENROUTER_API_KEY=sk-or-v1-your_actual_api_key_here
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 # Default Model Settings
-DEFAULT_MODEL=z-ai/glm-4.5
+DEFAULT_MODEL=moonshotai/kimi-k2-thinking
 DEFAULT_TEMPERATURE=0.7
 DEFAULT_MAX_TOKENS=1048576
 DEFAULT_MAX_REASONING_TOKENS=16384
@@ -159,7 +159,7 @@ cp examples/call-openrouter.md ~/.claude/commands/
 
 ## 🎯 What You Get
 
-- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro Preview, Kimi K2, Grok 4, and hundreds more
+- **400+ AI Models**: DeepSeek R1, GPT-4, Gemini Pro Preview, moonshotai/kimi-k2-thinking, Grok 4, and hundreds more
 - **Large File Support**: Send multiple large files (1,048,576 token limit) without errors
 - **Web Search Integration**: Gemini automatically searches the internet for current information
 - **Conversation Memory**: Continue conversations across multiple requests with full context
@@ -181,10 +181,10 @@ openrouter-docker - chat (model: "deepseek-v3.1", prompt: "Solve this complex pr
 # Use Gemini 2.5 Pro Preview with automatic web search for current info
 openrouter-docker - chat (model: "gemini", prompt: "What are the latest AI developments in 2025?")
 
-# Use Kimi K2 for advanced reasoning and programming tasks
+# Use moonshotai/kimi-k2-thinking for advanced reasoning and programming tasks
 openrouter-docker - chat (model: "kimi", prompt: "Write a Python function to sort a dictionary by values")
 
-# Use Kimi K2 by Moonshot AI for advanced reasoning
+# Use moonshotai/kimi-k2-thinking by Moonshot AI for advanced reasoning
 openrouter-docker - chat (model: "kimi", prompt: "Analyze this complex system architecture")
 
 # Use Grok 4 by X.AI for creative and analytical tasks
@@ -205,7 +205,7 @@ openrouter-docker - chat (model: "gemini", files: ["/path/to/main.py", "/path/to
 # Analyze documentation with web search for current best practices
 openrouter-docker - chat (model: "gemini", files: ["/path/to/README.md"], prompt: "Summarize this project and compare with 2025 industry standards")
 
-# Programming help with Kimi K2
+# Programming help with moonshotai/kimi-k2-thinking
 openrouter-docker - chat (model: "kimi", files: ["/path/to/broken_script.py"], prompt: "Debug this code and suggest improvements")
 
 # Control web search behavior manually when needed
@@ -220,7 +220,7 @@ openrouter-docker - chat (model: "gemini", force_internet_search: false, prompt:
 # This initiates a structured workflow:
 # 1. Gemini Pro 2.5 creates initial proposal
 # 2. DeepSeek R1 refines and improves the plan
-# 3. Kimi K2 provides tie-breaking if needed
+# 3. moonshotai/kimi-k2-thinking provides tie-breaking if needed
 # 4. Automatic implementation of the agreed solution
 ```
 
@@ -231,7 +231,7 @@ Just use simple names:
 - `gemini` → Google Gemini 2.5 Pro Preview (with web search)
 - `deepseek` → DeepSeek R1 (reasoning & analysis)
 - `deepseek-v3.1` → DeepSeek Chat v3.1 (latest version with 163K context)
-- `kimi` → Moonshot Kimi K2 (advanced reasoning)
+- `kimi` → Moonshot moonshotai/kimi-k2-thinking (advanced reasoning)
 - `grok` → X.AI Grok Code Fast 1 (fast code generation & programming)
 - `gpt-5` → OpenAI GPT-5 (latest flagship model with 400K context)
 - Plus 400+ other models available by full name
