@@ -25,6 +25,13 @@ try:
         DEFAULT_TEMPERATURE,
         should_force_internet_search,
     )
+    from .pricing import (
+        get_model_pricing,
+        calculate_cost,
+        refresh_pricing,
+        start_background_refresh,
+        get_pricing_stats,
+    )
 except ImportError:
     from conversation_manager import ConversationManager
     from config import (
@@ -34,6 +41,13 @@ except ImportError:
         DEFAULT_MAX_TOKENS,
         DEFAULT_TEMPERATURE,
         should_force_internet_search,
+    )
+    from pricing import (
+        get_model_pricing,
+        calculate_cost,
+        refresh_pricing,
+        start_background_refresh,
+        get_pricing_stats,
     )
 
 # Simple logging setup
@@ -58,6 +72,15 @@ active_requests_lock = threading.Lock()
 
 logger.info("Simple OpenRouter MCP Server starting...")
 logger.info(f"API Key configured: {bool(OPENROUTER_API_KEY)}")
+
+# Initialize pricing cache and start background refresh
+try:
+    refresh_pricing()  # Initial fetch
+    start_background_refresh()  # Auto-refresh every hour
+    pricing_stats = get_pricing_stats()
+    logger.info(f"Pricing initialized: {pricing_stats['models_cached']} models cached")
+except Exception as e:
+    logger.warning(f"Failed to initialize pricing (will retry on demand): {e}")
 
 
 class GracefulShutdownProtection:
@@ -453,10 +476,59 @@ def _execute_chat_completion(
             )
             logger.info(f"Model returned reasoning tokens: {len(reasoning)} chars")
 
+        # Extract token usage from API response
+        usage = result.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        total_tokens = usage.get("total_tokens", input_tokens + output_tokens)
+
+        # Extract additional usage details if available
+        reasoning_tokens = usage.get("reasoning_tokens", 0)  # For thinking models
+        cache_read_tokens = usage.get("cache_read_input_tokens", 0)
+        cache_write_tokens = usage.get("cache_creation_input_tokens", 0)
+
+        # Calculate cost
+        cost_usd = calculate_cost(final_model, input_tokens, output_tokens)
+        pricing = get_model_pricing(final_model)
+
+        # Log usage
+        logger.info(
+            f"Token usage - Input: {input_tokens}, Output: {output_tokens}, "
+            f"Total: {total_tokens}, Cost: ${cost_usd:.6f}"
+        )
+        if reasoning_tokens:
+            logger.info(f"Reasoning tokens: {reasoning_tokens}")
+
         # Add AI response to conversation
         conversation_manager.add_message(continuation_id, "assistant", ai_response)
 
-        # Send result
+        # Build usage info for response
+        usage_info = {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+            "cost_usd": round(cost_usd, 8),
+            "pricing_per_million": pricing,
+            "model": final_model,
+        }
+
+        # Add optional fields if present
+        if reasoning_tokens:
+            usage_info["reasoning_tokens"] = reasoning_tokens
+        if cache_read_tokens:
+            usage_info["cache_read_tokens"] = cache_read_tokens
+        if cache_write_tokens:
+            usage_info["cache_write_tokens"] = cache_write_tokens
+
+        # Format usage summary for text output
+        usage_summary = (
+            f"\n\n---\n"
+            f"**Usage**: {total_tokens:,} tokens "
+            f"(in: {input_tokens:,}, out: {output_tokens:,}) | "
+            f"**Cost**: ${cost_usd:.6f}"
+        )
+
+        # Send result with usage info
         send_response(
             {
                 "jsonrpc": "2.0",
@@ -465,10 +537,11 @@ def _execute_chat_completion(
                     "content": [
                         {
                             "type": "text",
-                            "text": f"**{actual_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*",
+                            "text": f"**{actual_model}**: {ai_response}\n\n*Conversation ID: {continuation_id}*{usage_summary}",
                         }
                     ],
                     "continuation_id": continuation_id,
+                    "usage": usage_info,
                 },
             }
         )
